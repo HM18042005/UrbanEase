@@ -96,7 +96,6 @@ const LandingPage = () => {
           </div>
           <nav className="nav-links">
             <a href="#services">Services</a>
-            <a href="#become-pro">Become a Pro</a>
             <a href="#login">Log in</a>
           </nav>
         </div>

@@ -57,7 +57,6 @@ const Header = ({ isLoggedIn = false, userType = 'user' }) => {
             </>
           ) : (
             <>
-              <Link to="/become-pro" className="nav-link">Become a Pro</Link>
               <Link to="/" className="nav-link">Log in</Link>
             </>
           )}
@@ -81,7 +80,7 @@ const Header = ({ isLoggedIn = false, userType = 'user' }) => {
                 onClick={() => setShowProfile(!showProfile)}
               >
                 <img 
-                  src="/api/placeholder/32/32" 
+                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face" 
                   alt="Profile" 
                   className="profile-avatar"
                 />

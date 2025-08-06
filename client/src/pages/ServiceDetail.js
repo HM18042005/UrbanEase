@@ -36,9 +36,9 @@ const ServiceDetail = () => {
         description: 'Comprehensive cleaning for your entire home, including hard-to-reach areas.',
         longDescription: 'Our deep cleaning service goes beyond the basics to provide a thorough and comprehensive clean of your home. We focus on areas that are often overlooked, such as baseboards, inside appliances, and under furniture. Our experienced cleaners use eco-friendly products and advanced techniques to ensure your home is spotless and healthy. This service is perfect for move-in/move-out cleaning, seasonal deep cleans, or preparing for a special event.',
         images: [
-          '/api/placeholder/600/400',
-          '/api/placeholder/600/400',
-          '/api/placeholder/600/400'
+          'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&h=400&fit=crop',
+          'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=600&h=400&fit=crop',
+          'https://images.unsplash.com/photo-1527515862127-a4fc05baf7a5?w=600&h=400&fit=crop'
         ],
         category: 'Home Cleaning',
         rating: 4.8,
@@ -58,7 +58,7 @@ const ServiceDetail = () => {
         id: 1,
         name: 'Sarah Miller',
         title: 'Professional Cleaner',
-        avatar: '/api/placeholder/100/100',
+        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b77c?w=100&h=100&fit=crop&crop=face',
         rating: 4.8,
         reviewCount: 125,
         yearsExperience: 5,

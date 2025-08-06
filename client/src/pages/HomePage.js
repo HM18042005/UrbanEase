@@ -73,28 +73,28 @@ const HomePage = () => {
         id: 1,
         name: 'Moving & Packing',
         description: 'Efficient moving and packing solutions',
-        image: '/api/placeholder/300/200',
+        image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=200&fit=crop',
         serviceCount: 24
       },
       {
         id: 2,
         name: 'Furniture Assembly',
         description: 'Expert furniture assembly services',
-        image: '/api/placeholder/300/200',
+        image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop',
         serviceCount: 18
       },
       {
         id: 3,
         name: 'Gardening',
         description: 'Professional gardening and landscaping',
-        image: '/api/placeholder/300/200',
+        image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&h=200&fit=crop',
         serviceCount: 32
       },
       {
         id: 4,
         name: 'Car Washing',
         description: 'Convenient car washing at your location',
-        image: '/api/placeholder/300/200',
+        image: 'https://images.unsplash.com/photo-1558584673-c834fb4d6f01?w=300&h=200&fit=crop',
         serviceCount: 15
       }
     ]);

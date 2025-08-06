@@ -30,10 +30,10 @@ const ServiceCard = ({ service, size = 'medium' }) => {
       <Link to={`/service/${id}`} className="service-card-link">
         <div className="service-image">
           <img 
-            src={image || `/api/placeholder/300/200`} 
+            src={image || `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&h=200&fit=crop`} 
             alt={title}
             onError={(e) => {
-              e.target.src = `/api/placeholder/300/200`;
+              e.target.src = `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&h=200&fit=crop`;
             }}
           />
           <div className="service-category">{category}</div>
