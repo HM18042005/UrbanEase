@@ -1,0 +1,272 @@
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import Header from '../components/Header';
+import ServiceCard from '../components/ServiceCard';
+import './ServicesPage.css';
+
+/**
+ * ServicesPage Component
+ * 
+ * What: Browse and filter services by category, search terms, and other criteria
+ * When: Accessed from main navigation or search results
+ * Why: Allows users to explore all available services with filtering options
+ * 
+ * Features:
+ * - Category filtering tabs
+ * - Search functionality
+ * - Service grid display
+ * - Pagination (if needed)
+ * - Filter by rating, price, etc.
+ */
+const ServicesPage = () => {
+  const [searchParams] = useSearchParams();
+  const [services, setServices] = useState([]);
+  const [filteredServices, setFilteredServices] = useState([]);
+  const [activeCategory, setActiveCategory] = useState('All Services');
+  const [loading, setLoading] = useState(true);
+
+  const categories = [
+    'All Services',
+    'Cleaning',
+    'Handyman',
+    'Pet Care'
+  ];
+
+  // Mock services data
+  const mockServices = [
+    {
+      id: 1,
+      title: 'Home Cleaning',
+      description: 'Professional home cleaning services.',
+      image: '/api/placeholder/300/200',
+      category: 'Cleaning',
+      rating: 4.8,
+      reviews: 125,
+      startingPrice: 25
+    },
+    {
+      id: 2,
+      title: 'Deep Cleaning',
+      description: 'Thorough deep cleaning for your home.',
+      image: '/api/placeholder/300/200',
+      category: 'Cleaning',
+      rating: 4.9,
+      reviews: 98,
+      startingPrice: 45
+    },
+    {
+      id: 3,
+      title: 'Move-In/Out Cleaning',
+      description: 'Cleaning services for moving in or out.',
+      image: '/api/placeholder/300/200',
+      category: 'Cleaning',
+      rating: 4.7,
+      reviews: 76,
+      startingPrice: 35
+    },
+    {
+      id: 4,
+      title: 'Carpet Cleaning',
+      description: 'Specialized carpet cleaning.',
+      image: '/api/placeholder/300/200',
+      category: 'Cleaning',
+      rating: 4.6,
+      reviews: 54,
+      startingPrice: 30
+    },
+    {
+      id: 5,
+      title: 'Furniture Assembly',
+      description: 'Expert furniture assembly services.',
+      image: '/api/placeholder/300/200',
+      category: 'Handyman',
+      rating: 4.8,
+      reviews: 89,
+      startingPrice: 40
+    },
+    {
+      id: 6,
+      title: 'Electrical Work',
+      description: 'Professional electrical work and repairs.',
+      image: '/api/placeholder/300/200',
+      category: 'Handyman',
+      rating: 4.9,
+      reviews: 112,
+      startingPrice: 55
+    },
+    {
+      id: 7,
+      title: 'Plumbing',
+      description: 'Reliable plumbing services.',
+      image: '/api/placeholder/300/200',
+      category: 'Handyman',
+      rating: 4.7,
+      reviews: 134,
+      startingPrice: 50
+    },
+    {
+      id: 8,
+      title: 'General Repairs',
+      description: 'General home repair services.',
+      image: '/api/placeholder/300/200',
+      category: 'Handyman',
+      rating: 4.6,
+      reviews: 67,
+      startingPrice: 35
+    },
+    {
+      id: 9,
+      title: 'Dog Walking',
+      description: 'Professional dog walking services.',
+      image: '/api/placeholder/300/200',
+      category: 'Pet Care',
+      rating: 4.8,
+      reviews: 156,
+      startingPrice: 20
+    },
+    {
+      id: 10,
+      title: 'Pet Sitting',
+      description: 'Reliable pet sitting services.',
+      image: '/api/placeholder/300/200',
+      category: 'Pet Care',
+      rating: 4.9,
+      reviews: 203,
+      startingPrice: 25
+    },
+    {
+      id: 11,
+      title: 'Pet Grooming',
+      description: 'Pet grooming services.',
+      image: '/api/placeholder/300/200',
+      category: 'Pet Care',
+      rating: 4.7,
+      reviews: 87,
+      startingPrice: 35
+    },
+    {
+      id: 12,
+      title: 'Pet Taxi',
+      description: 'Safe and comfortable pet taxi services.',
+      image: '/api/placeholder/300/200',
+      category: 'Pet Care',
+      rating: 4.6,
+      reviews: 43,
+      startingPrice: 15
+    }
+  ];
+
+  useEffect(() => {
+    // Simulate API call
+    setLoading(true);
+    setTimeout(() => {
+      setServices(mockServices);
+      setFilteredServices(mockServices);
+      setLoading(false);
+    }, 500);
+
+    // Handle search and category from URL params
+    const category = searchParams.get('category');
+    const search = searchParams.get('search');
+    
+    if (category) {
+      setActiveCategory(category);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    filterServices();
+  }, [activeCategory, services]);
+
+  const filterServices = () => {
+    let filtered = services;
+    
+    if (activeCategory !== 'All Services') {
+      filtered = filtered.filter(service => service.category === activeCategory);
+    }
+
+    const searchQuery = searchParams.get('search');
+    if (searchQuery) {
+      filtered = filtered.filter(service => 
+        service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        service.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        service.category.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    setFilteredServices(filtered);
+  };
+
+  if (loading) {
+    return (
+      <div className="services-page">
+        <Header isLoggedIn={true} />
+        <div className="loading-container">
+          <div className="loading-spinner">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="services-page">
+      <Header isLoggedIn={true} />
+      
+      <main className="services-main">
+        <div className="container">
+          <div className="services-header">
+            <h1 className="page-title">Explore Services</h1>
+            <p className="page-subtitle">
+              Discover a wide range of on-demand services tailored to your needs.
+            </p>
+          </div>
+
+          {/* Category Tabs */}
+          <div className="category-tabs">
+            {categories.map(category => (
+              <button
+                key={category}
+                className={`category-tab ${activeCategory === category ? 'active' : ''}`}
+                onClick={() => setActiveCategory(category)}
+              >
+                {category}
+              </button>
+            ))}
+          </div>
+
+          {/* Services Grid */}
+          <div className="services-content">
+            {filteredServices.length > 0 ? (
+              <>
+                <div className="services-header-info">
+                  <h2 className="category-title">{activeCategory}</h2>
+                  <span className="services-count">
+                    {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''} found
+                  </span>
+                </div>
+                
+                <div className="services-grid medium">
+                  {filteredServices.map(service => (
+                    <ServiceCard 
+                      key={service.id} 
+                      service={service} 
+                      size="medium"
+                    />
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="no-services">
+                <div className="no-services-icon">🔍</div>
+                <h3>No services found</h3>
+                <p>Try adjusting your search or browse other categories.</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+};
+
+export default ServicesPage;
