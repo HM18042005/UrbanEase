@@ -1,0 +1,35 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Start Server",
+			"type": "shell",
+			"command": "npm start",
+			"args": [],
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/server"
+			}
+		},
+		{
+			"label": "Start Client",
+			"type": "shell",
+			"command": "npm start",
+			"args": [],
+			"group": "build",
+			"isBackground": true,
+			"problemMatcher": [],
+			"options": {
+				"cwd": "${workspaceFolder}/client"
+			}
+		},
+		{
+			"label": "Start Both",
+			"dependsOrder": "parallel",
+			"dependsOn": ["Start Server", "Start Client"],
+			"group": "build"
+		}
+	]
+}
