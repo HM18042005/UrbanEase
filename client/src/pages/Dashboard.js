@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
+import { Link } from 'react-router-dom';
 import './Dashboard.css';
 
 /**
@@ -223,22 +224,22 @@ const Dashboard = () => {
                   <h3 className="card-title">Quick Actions</h3>
                 </div>
                 <div className="quick-actions">
-                  <button className="action-btn primary">
-                    <span className="btn-icon">📊</span>
-                    View Full Reports
-                  </button>
-                  <button className="action-btn">
+                  <Link to="/provider/services" className="action-btn primary">
                     <span className="btn-icon">⚙️</span>
                     Manage Services
-                  </button>
-                  <button className="action-btn">
+                  </Link>
+                  <Link to="/provider/messages" className="action-btn">
                     <span className="btn-icon">💬</span>
                     Message Customers
-                  </button>
-                  <button className="action-btn">
-                    <span className="btn-icon">📅</span>
+                  </Link>
+                  <Link to="/provider/schedule" className="action-btn">
+                    <span className="btn-icon">�</span>
                     Update Schedule
-                  </button>
+                  </Link>
+                  <Link to="/provider/reports" className="action-btn">
+                    <span className="btn-icon">�</span>
+                    View Reports
+                  </Link>
                 </div>
               </div>
             </div>

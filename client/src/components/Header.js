@@ -49,7 +49,7 @@ const Header = ({ isLoggedIn = false, userType = 'user' }) => {
               <Link to="/bookings" className="nav-link">Bookings</Link>
               <Link to="/profile" className="nav-link">Profile</Link>
               {userType === 'provider' && (
-                <Link to="/dashboard" className="nav-link">Dashboard</Link>
+                <Link to="/provider" className="nav-link">Dashboard</Link>
               )}
               {userType === 'admin' && (
                 <Link to="/admin" className="nav-link">Admin</Link>
@@ -89,7 +89,7 @@ const Header = ({ isLoggedIn = false, userType = 'user' }) => {
               {showProfile && (
                 <div className="profile-dropdown">
                   <Link to="/profile" className="dropdown-item">Profile</Link>
-                  <Link to="/settings" className="dropdown-item">Settings</Link>
+                  <Link to="/bookings" className="dropdown-item">Bookings</Link>
                   <button onClick={handleLogout} className="dropdown-item logout">
                     Logout
                   </button>

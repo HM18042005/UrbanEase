@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import './AdminDashboard.css';
+import { Link } from 'react-router-dom';
 
 /**
  * AdminDashboard Component
@@ -140,26 +141,30 @@ const AdminDashboard = () => {
           <h2>UrbanEase Admin</h2>
         </div>
         <nav className="sidebar-nav">
-          <a href="#dashboard" className="nav-item active">
+          <Link to="/admin" className="nav-item active">
             <span className="nav-icon">📊</span>
             Dashboard
-          </a>
-          <a href="#users" className="nav-item">
+          </Link>
+          <Link to="/admin/users" className="nav-item">
             <span className="nav-icon">👥</span>
             Users
-          </a>
-          <a href="#services" className="nav-item">
+          </Link>
+          <Link to="/admin/services" className="nav-item">
             <span className="nav-icon">🔧</span>
             Services
-          </a>
-          <a href="#settings" className="nav-item">
-            <span className="nav-icon">⚙️</span>
-            Settings
-          </a>
-          <a href="#reports" className="nav-item">
+          </Link>
+          <Link to="/admin/bookings" className="nav-item">
+            <span className="nav-icon">📅</span>
+            Bookings
+          </Link>
+          <Link to="/admin/reviews" className="nav-item">
+            <span className="nav-icon">⭐</span>
+            Reviews
+          </Link>
+          <Link to="/admin/reports" className="nav-item">
             <span className="nav-icon">📈</span>
             Reports
-          </a>
+          </Link>
         </nav>
       </div>
 
@@ -298,22 +303,26 @@ const AdminDashboard = () => {
               <div className="admin-card">
                 <h3 className="card-title">Quick Actions</h3>
                 <div className="quick-actions">
-                  <button className="action-btn primary">
+                  <Link to="/admin/users" className="action-btn primary">
                     <span className="btn-icon">👥</span>
                     Manage Users
-                  </button>
-                  <button className="action-btn">
+                  </Link>
+                  <Link to="/admin/services" className="action-btn">
                     <span className="btn-icon">🔧</span>
                     Add New Service
-                  </button>
-                  <button className="action-btn">
-                    <span className="btn-icon">📊</span>
+                  </Link>
+                  <Link to="/admin/bookings" className="action-btn">
+                    <span className="btn-icon">�</span>
+                    Manage Bookings
+                  </Link>
+                  <Link to="/admin/reviews" className="action-btn">
+                    <span className="btn-icon">⭐</span>
+                    Moderate Reviews
+                  </Link>
+                  <Link to="/admin/reports" className="action-btn">
+                    <span className="btn-icon">📈</span>
                     Generate Report
-                  </button>
-                  <button className="action-btn">
-                    <span className="btn-icon">⚙️</span>
-                    System Settings
-                  </button>
+                  </Link>
                 </div>
               </div>
             </div>

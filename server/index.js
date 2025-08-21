@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const cookieParser = require('cookie-parser');
 require('dotenv').config();
 
 // Import models
@@ -12,15 +13,26 @@ const review = require('./models/review');
 
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(cookieParser());
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI ,{ useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('Connected to MongoDB'))
   .catch((error) => console.error('MongoDB connection error:', error));
 
+// Auth routes
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
+
 // Test route
 app.get('/', (req, res) => res.send('Hello from backend!'));
+
+// Admin-only test route
+const { protect, restrictTo } = require('./middleware/auth');
+app.get('/admin/ping', protect, restrictTo('admin'), (req, res) => {
+  res.json({ ok: true, user: req.user });
+});
 
 // Test database route
 app.get('/test-db1', async (req, res) => {
