@@ -101,7 +101,7 @@ const ServiceDetail = () => {
   if (loading) {
     return (
       <div className="service-detail-page">
-        <Header isLoggedIn={true} />
+  <Header />
         <div className="loading-container">
           <div className="loading-spinner">Loading...</div>
         </div>
@@ -112,7 +112,7 @@ const ServiceDetail = () => {
   if (!service) {
     return (
       <div className="service-detail-page">
-        <Header isLoggedIn={true} />
+  <Header />
         <div className="error-container">
           <h2>Service not found</h2>
           <button onClick={() => navigate('/services')}>Back to Services</button>
@@ -123,7 +123,7 @@ const ServiceDetail = () => {
 
   return (
     <div className="service-detail-page">
-      <Header isLoggedIn={true} />
+  <Header />
       
       <main className="service-detail-main">
         <div className="container">

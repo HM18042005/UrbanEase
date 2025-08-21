@@ -79,7 +79,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard-page">
-      <Header isLoggedIn={true} userType="provider" />
+  <Header />
       
       <main className="dashboard-main">
         <div className="container">

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './Header.css';
 
 /**
@@ -15,10 +16,14 @@ import './Header.css';
  * - Search functionality
  * - Profile dropdown menu
  */
-const Header = ({ isLoggedIn = false, userType = 'user' }) => {
+const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' }) => {
+  const { user, logout } = useAuth() || {};
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfile, setShowProfile] = useState(false);
   const navigate = useNavigate();
+
+  const isLoggedIn = typeof isLoggedInProp === 'boolean' ? isLoggedInProp : !!user;
+  const userType = user?.role || userTypeProp;
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -27,10 +32,12 @@ const Header = ({ isLoggedIn = false, userType = 'user' }) => {
     }
   };
 
-  const handleLogout = () => {
-    // Logout logic would go here
-    localStorage.removeItem('token');
-    navigate('/');
+  const handleLogout = async () => {
+    try {
+      await logout?.();
+    } finally {
+      navigate('/login');
+    }
   };
 
   return (
@@ -44,7 +51,7 @@ const Header = ({ isLoggedIn = false, userType = 'user' }) => {
         <nav className="nav-menu">
           <Link to="/home" className="nav-link">Home</Link>
           <Link to="/services" className="nav-link">Services</Link>
-          {isLoggedIn ? (
+      {isLoggedIn ? (
             <>
               <Link to="/bookings" className="nav-link">Bookings</Link>
               <Link to="/profile" className="nav-link">Profile</Link>
@@ -54,10 +61,11 @@ const Header = ({ isLoggedIn = false, userType = 'user' }) => {
               {userType === 'admin' && (
                 <Link to="/admin" className="nav-link">Admin</Link>
               )}
+        <button onClick={handleLogout} className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>Logout</button>
             </>
           ) : (
             <>
-              <Link to="/" className="nav-link">Log in</Link>
+        <Link to="/login" className="nav-link">Log in</Link>
             </>
           )}
         </nav>

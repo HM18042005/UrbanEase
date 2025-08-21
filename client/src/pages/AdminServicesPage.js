@@ -39,7 +39,7 @@ const AdminServicesPage = () => {
       </div>
 
       <div className="admin-main">
-        <Header isLoggedIn={true} userType="admin" />
+  <Header />
         <div className="admin-content">
           <div className="admin-header">
             <h1 className="admin-title">Manage Services</h1>

@@ -20,13 +20,18 @@ import AdminServicesPage from './pages/AdminServicesPage';
 import AdminBookingsPage from './pages/AdminBookingsPage';
 import AdminReviewsPage from './pages/AdminReviewsPage';
 import AdminReportsPage from './pages/AdminReportsPage';
+import LoginPage from './pages/LoginPage';
+import RegisterPage from './pages/RegisterPage';
 
 function App() {
   return (
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/landing" element={<LandingPage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route path="/home" element={<HomePage />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/service/:id" element={<ServiceDetail />} />

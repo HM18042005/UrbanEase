@@ -110,7 +110,7 @@ const HomePage = () => {
 
   return (
     <div className="home-page">
-      <Header isLoggedIn={true} />
+  <Header />
       
       <main className="home-main">
         <div className="container">

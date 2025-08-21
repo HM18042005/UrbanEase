@@ -200,7 +200,7 @@ const ServicesPage = () => {
   if (loading) {
     return (
       <div className="services-page">
-        <Header isLoggedIn={true} />
+  <Header />
         <div className="loading-container">
           <div className="loading-spinner">Loading...</div>
         </div>
@@ -210,7 +210,7 @@ const ServicesPage = () => {
 
   return (
     <div className="services-page">
-      <Header isLoggedIn={true} />
+  <Header />
       
       <main className="services-main">
         <div className="container">
