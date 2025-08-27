@@ -58,7 +58,6 @@ const ServiceDetail = () => {
         id: 1,
         name: 'Sarah Miller',
         title: 'Professional Cleaner',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b77c?w=100&h=100&fit=crop&crop=face',
         rating: 4.8,
         reviewCount: 125,
         yearsExperience: 5,
@@ -172,7 +171,9 @@ const ServiceDetail = () => {
               <div className="provider-section">
                 <h3>Provider</h3>
                 <div className="provider-card">
-                  <img src={provider.avatar} alt={provider.name} className="provider-avatar" />
+                  <div className="provider-avatar">
+                    👤
+                  </div>
                   <div className="provider-info">
                     <h4 className="provider-name">{provider.name}</h4>
                     <p className="provider-title">{provider.title}</p>

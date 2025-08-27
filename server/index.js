@@ -25,6 +25,34 @@ mongoose.connect(process.env.MONGO_URI ,{ useNewUrlParser: true, useUnifiedTopol
 const authRoutes = require('./routes/authRoutes');
 app.use('/api/auth', authRoutes);
 
+// Profile routes
+const profileRoutes = require('./routes/profileRoutes');
+app.use('/api/profile', profileRoutes);
+
+// Service routes
+const serviceRoutes = require('./routes/serviceRoutes');
+app.use('/api/services', serviceRoutes);
+
+// Booking routes
+const bookingRoutes = require('./routes/bookingRoutes');
+app.use('/api/bookings', bookingRoutes);
+
+// Review routes
+const reviewRoutes = require('./routes/reviewRoutes');
+app.use('/api/reviews', reviewRoutes);
+
+// Message routes
+const messageRoutes = require('./routes/messageRoutes');
+app.use('/api/messages', messageRoutes);
+
+// User routes
+const userRoutes = require('./routes/userRoutes');
+app.use('/api/users', userRoutes);
+
+// Admin routes
+const adminRoutes = require('./routes/adminRoutes');
+app.use('/api/admin', adminRoutes);
+
 // Test route
 app.get('/', (req, res) => res.send('Hello from backend!'));
 

@@ -1,23 +1,43 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Header from '../components/Header';
 import ServiceCard from '../components/ServiceCard';
 import './ServicesPage.css';
 
-/**
- * ServicesPage Component
- * 
- * What: Browse and filter services by category, search terms, and other criteria
- * When: Accessed from main navigation or search results
- * Why: Allows users to explore all available services with filtering options
- * 
- * Features:
- * - Category filtering tabs
- * - Search functionality
- * - Service grid display
- * - Pagination (if needed)
- * - Filter by rating, price, etc.
- */
+// Mock services data
+const mockServices = [
+  {
+    id: 1,
+    title: 'Home Cleaning',
+    description: 'Professional home cleaning services.',
+    price: 50,
+    rating: 4.5,
+    category: 'Cleaning',
+    image: '/api/placeholder/300/200',
+    startingPrice: 30
+  },
+  {
+    id: 2,
+    title: 'Plumbing Repair',
+    description: 'Expert plumbing services for all your needs.',
+    price: 80,
+    rating: 4.8,
+    category: 'Handyman',
+    image: '/api/placeholder/300/200',
+    startingPrice: 50
+  },
+  {
+    id: 3,
+    title: 'Dog Walking',
+    description: 'Reliable dog walking services.',
+    price: 25,
+    rating: 4.7,
+    category: 'Pet Care',
+    image: '/api/placeholder/300/200',
+    startingPrice: 15
+  }
+];
+
 const ServicesPage = () => {
   const [searchParams] = useSearchParams();
   const [services, setServices] = useState([]);
@@ -32,132 +52,7 @@ const ServicesPage = () => {
     'Pet Care'
   ];
 
-  // Mock services data
-  const mockServices = [
-    {
-      id: 1,
-      title: 'Home Cleaning',
-      description: 'Professional home cleaning services.',
-      image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&h=200&fit=crop',
-      category: 'Cleaning',
-      rating: 4.8,
-      reviews: 125,
-      startingPrice: 25
-    },
-    {
-      id: 2,
-      title: 'Deep Cleaning',
-      description: 'Thorough deep cleaning for your home.',
-      image: 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=300&h=200&fit=crop',
-      category: 'Cleaning',
-      rating: 4.9,
-      reviews: 98,
-      startingPrice: 45
-    },
-    {
-      id: 3,
-      title: 'Move-In/Out Cleaning',
-      description: 'Cleaning services for moving in or out.',
-      image: 'https://images.unsplash.com/photo-1527515862127-a4fc05baf7a5?w=300&h=200&fit=crop',
-      category: 'Cleaning',
-      rating: 4.7,
-      reviews: 76,
-      startingPrice: 35
-    },
-    {
-      id: 4,
-      title: 'Carpet Cleaning',
-      description: 'Specialized carpet cleaning.',
-      image: 'https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=300&h=200&fit=crop',
-      category: 'Cleaning',
-      rating: 4.6,
-      reviews: 54,
-      startingPrice: 30
-    },
-    {
-      id: 5,
-      title: 'Furniture Assembly',
-      description: 'Expert furniture assembly services.',
-      image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop',
-      category: 'Handyman',
-      rating: 4.8,
-      reviews: 89,
-      startingPrice: 40
-    },
-    {
-      id: 6,
-      title: 'Electrical Work',
-      description: 'Professional electrical work and repairs.',
-      image: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=300&h=200&fit=crop',
-      category: 'Handyman',
-      rating: 4.9,
-      reviews: 112,
-      startingPrice: 55
-    },
-    {
-      id: 7,
-      title: 'Plumbing',
-      description: 'Reliable plumbing services.',
-      image: 'https://images.unsplash.com/photo-1607472586893-edb57bdc0e39?w=300&h=200&fit=crop',
-      category: 'Handyman',
-      rating: 4.7,
-      reviews: 134,
-      startingPrice: 50
-    },
-    {
-      id: 8,
-      title: 'General Repairs',
-      description: 'General home repair services.',
-      image: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=300&h=200&fit=crop',
-      category: 'Handyman',
-      rating: 4.6,
-      reviews: 67,
-      startingPrice: 35
-    },
-    {
-      id: 9,
-      title: 'Dog Walking',
-      description: 'Professional dog walking services.',
-      image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=300&h=200&fit=crop',
-      category: 'Pet Care',
-      rating: 4.8,
-      reviews: 156,
-      startingPrice: 20
-    },
-    {
-      id: 10,
-      title: 'Pet Sitting',
-      description: 'Reliable pet sitting services.',
-      image: 'https://images.unsplash.com/photo-1415369629372-26f2fe60c467?w=300&h=200&fit=crop',
-      category: 'Pet Care',
-      rating: 4.9,
-      reviews: 203,
-      startingPrice: 25
-    },
-    {
-      id: 11,
-      title: 'Pet Grooming',
-      description: 'Pet grooming services.',
-      image: 'https://images.unsplash.com/photo-1560807707-8cc77767d783?w=300&h=200&fit=crop',
-      category: 'Pet Care',
-      rating: 4.7,
-      reviews: 87,
-      startingPrice: 35
-    },
-    {
-      id: 12,
-      title: 'Pet Taxi',
-      description: 'Safe and comfortable pet taxi services.',
-      image: 'https://images.unsplash.com/photo-1605568427561-40dd23c2acea?w=300&h=200&fit=crop',
-      category: 'Pet Care',
-      rating: 4.6,
-      reviews: 43,
-      startingPrice: 15
-    }
-  ];
-
   useEffect(() => {
-    // Simulate API call
     setLoading(true);
     setTimeout(() => {
       setServices(mockServices);
@@ -165,20 +60,13 @@ const ServicesPage = () => {
       setLoading(false);
     }, 500);
 
-    // Handle search and category from URL params
     const category = searchParams.get('category');
-    const search = searchParams.get('search');
-    
     if (category) {
       setActiveCategory(category);
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    filterServices();
-  }, [activeCategory, services]);
-
-  const filterServices = () => {
+  const filterServices = useCallback(() => {
     let filtered = services;
     
     if (activeCategory !== 'All Services') {
@@ -195,76 +83,54 @@ const ServicesPage = () => {
     }
 
     setFilteredServices(filtered);
-  };
+  }, [services, activeCategory, searchParams]);
+
+  useEffect(() => {
+    filterServices();
+  }, [filterServices]);
 
   if (loading) {
     return (
       <div className="services-page">
-  <Header />
-        <div className="loading-container">
-          <div className="loading-spinner">Loading...</div>
-        </div>
+        <Header />
+        <div className="loading">Loading services...</div>
       </div>
     );
   }
 
   return (
     <div className="services-page">
-  <Header />
-      
-      <main className="services-main">
-        <div className="container">
-          <div className="services-header">
-            <h1 className="page-title">Explore Services</h1>
-            <p className="page-subtitle">
-              Discover a wide range of on-demand services tailored to your needs.
-            </p>
-          </div>
-
-          {/* Category Tabs */}
-          <div className="category-tabs">
-            {categories.map(category => (
-              <button
-                key={category}
-                className={`category-tab ${activeCategory === category ? 'active' : ''}`}
-                onClick={() => setActiveCategory(category)}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-
-          {/* Services Grid */}
-          <div className="services-content">
-            {filteredServices.length > 0 ? (
-              <>
-                <div className="services-header-info">
-                  <h2 className="category-title">{activeCategory}</h2>
-                  <span className="services-count">
-                    {filteredServices.length} service{filteredServices.length !== 1 ? 's' : ''} found
-                  </span>
-                </div>
-                
-                <div className="services-grid medium">
-                  {filteredServices.map(service => (
-                    <ServiceCard 
-                      key={service.id} 
-                      service={service} 
-                      size="medium"
-                    />
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div className="no-services">
-                <div className="no-services-icon">🔍</div>
-                <h3>No services found</h3>
-                <p>Try adjusting your search or browse other categories.</p>
-              </div>
-            )}
-          </div>
+      <Header />
+      <div className="services-container">
+        <div className="services-header">
+          <h1>Our Services</h1>
+          <p>Find the perfect service for your needs</p>
         </div>
-      </main>
+
+        <div className="category-filters">
+          {categories.map(category => (
+            <button
+              key={category}
+              className={`category-btn ${activeCategory === category ? 'active' : ''}`}
+              onClick={() => setActiveCategory(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+
+        <div className="services-grid">
+          {filteredServices.length > 0 ? (
+            filteredServices.map(service => (
+              <ServiceCard key={service.id} service={service} />
+            ))
+          ) : (
+            <div className="no-services">
+              <p>No services found for the selected category.</p>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

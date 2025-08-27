@@ -87,11 +87,9 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                 className="profile-btn"
                 onClick={() => setShowProfile(!showProfile)}
               >
-                <img 
-                  src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=32&h=32&fit=crop&crop=face" 
-                  alt="Profile" 
-                  className="profile-avatar"
-                />
+                <div className="profile-icon">
+                  👤
+                </div>
               </button>
               
               {showProfile && (

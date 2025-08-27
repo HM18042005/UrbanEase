@@ -68,9 +68,6 @@ const LandingPage = () => {
 
     setLoading(true);
     try {
-      // API call would go here
-      const endpoint = activeTab === 'login' ? '/api/auth/login' : '/api/auth/register';
-      
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
