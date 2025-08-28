@@ -3,19 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './Header.css';
 
-/**
- * Header Component
- * 
- * What: Navigation header with logo, menu items, and user actions
- * When: Used on all pages except landing page
- * Why: Provides consistent navigation and branding across the application
- * 
- * Features:
- * - Responsive navigation menu
- * - User authentication state management
- * - Search functionality
- * - Profile dropdown menu
- */
 const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' }) => {
   const { user, logout } = useAuth() || {};
   const [searchQuery, setSearchQuery] = useState('');
@@ -49,24 +36,73 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
         </Link>
 
         <nav className="nav-menu">
-          <Link to="/home" className="nav-link">Home</Link>
-          <Link to="/services" className="nav-link">Services</Link>
-      {isLoggedIn ? (
+          {userType === 'provider' ? (
+            // Provider-specific navigation
             <>
-              <Link to="/bookings" className="nav-link">Bookings</Link>
-              <Link to="/profile" className="nav-link">Profile</Link>
-              {userType === 'provider' && (
-                <Link to="/provider" className="nav-link">Dashboard</Link>
-              )}
-              {userType === 'admin' && (
-                <Link to="/admin" className="nav-link">Admin</Link>
-              )}
-        <button onClick={handleLogout} className="nav-link" style={{ background: 'none', border: 'none', cursor: 'pointer' }}>Logout</button>
+              <Link to="/provider/services" className="nav-link">
+                <span className="nav-icon">🔧</span>
+                Manage Services
+              </Link>
+              <Link to="/provider/messages" className="nav-link">
+                <span className="nav-icon">💬</span>
+                Message Customers
+              </Link>
+              <Link to="/provider/schedule" className="nav-link">
+                <span className="nav-icon">📅</span>
+                Schedule
+              </Link>
+              <Link to="/provider/reports" className="nav-link">
+                <span className="nav-icon">📊</span>
+                Reports
+              </Link>
+              
+            </>
+          ) : userType === 'admin' ? (
+            // Admin-specific navigation
+            <>
+              <Link to="/admin" className="nav-link">
+                <span className="nav-icon">📊</span>
+                Dashboard
+              </Link>
+              <Link to="/admin/users" className="nav-link">
+                <span className="nav-icon">👥</span>
+                Users
+              </Link>
+              <Link to="/admin/services" className="nav-link">
+                <span className="nav-icon">🔧</span>
+                Services
+              </Link>
+              <Link to="/admin/bookings" className="nav-link">
+                <span className="nav-icon">📅</span>
+                Bookings
+              </Link>
             </>
           ) : (
+            // Regular user/client navigation
             <>
-        <Link to="/login" className="nav-link">Log in</Link>
+              <Link to="/home" className="nav-link">Home</Link>
+              <Link to="/services" className="nav-link">Services</Link>
+              {isLoggedIn && (
+                <>
+                  <Link to="/bookings" className="nav-link">Bookings</Link>
+                  <Link to="/profile" className="nav-link">Profile</Link>
+                </>
+              )}
+              {!isLoggedIn && (
+                <Link to="/login" className="nav-link">Log in</Link>
+              )}
             </>
+          )}
+          
+          {isLoggedIn && (
+            <button 
+              onClick={handleLogout} 
+              className="nav-link logout-btn" 
+              style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            >
+              <span className="nav-icon">🚪</span>
+              Logout
+            </button>
           )}
         </nav>
 
@@ -88,15 +124,75 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                 onClick={() => setShowProfile(!showProfile)}
               >
                 <div className="profile-icon">
-                  👤
+                  {userType === 'provider' ? '📊' : userType === 'admin' ? '🔧' : '👤'}
                 </div>
+                <span className="profile-role">
+                  {userType === 'provider' ? 'Provider' : userType === 'admin' ? 'Admin' : 'User'}
+                </span>
               </button>
               
               {showProfile && (
                 <div className="profile-dropdown">
-                  <Link to="/profile" className="dropdown-item">Profile</Link>
-                  <Link to="/bookings" className="dropdown-item">Bookings</Link>
+                  <div className="dropdown-header">
+                    <strong>{user?.name || 'User'}</strong>
+                    <small>{userType === 'provider' ? 'Service Provider' : userType === 'admin' ? 'Administrator' : 'Customer'}</small>
+                  </div>
+                  <div className="dropdown-divider"></div>
+                  
+                  <Link to="/profile" className="dropdown-item">
+                    <span className="dropdown-icon">👤</span>
+                    Profile Settings
+                  </Link>
+                  
+                  {userType === 'provider' ? (
+                    <>
+                      <Link to="/provider" className="dropdown-item">
+                        <span className="dropdown-icon">📊</span>
+                        Provider Dashboard
+                      </Link>
+                      <Link to="/provider/services" className="dropdown-item">
+                        <span className="dropdown-icon">🔧</span>
+                        My Services
+                      </Link>
+                      <Link to="/provider/messages" className="dropdown-item">
+                        <span className="dropdown-icon">💬</span>
+                        Messages
+                      </Link>
+                    </>
+                  ) : userType === 'admin' ? (
+                    <>
+                      <Link to="/admin" className="dropdown-item">
+                        <span className="dropdown-icon">🔧</span>
+                        Admin Dashboard
+                      </Link>
+                      <Link to="/admin/users" className="dropdown-item">
+                        <span className="dropdown-icon">👥</span>
+                        Manage Users
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <Link to="/bookings" className="dropdown-item">
+                        <span className="dropdown-icon">📅</span>
+                        My Bookings
+                      </Link>
+                      {(user?.role === 'provider' || user?.role === 'admin') && (
+                        <Link 
+                          to={user.role === 'provider' ? '/provider' : '/admin'} 
+                          className="dropdown-item"
+                        >
+                          <span className="dropdown-icon">
+                            {user.role === 'provider' ? '💼' : '🔧'}
+                          </span>
+                          {user.role === 'provider' ? 'Provider Mode' : 'Admin Mode'}
+                        </Link>
+                      )}
+                    </>
+                  )}
+                  
+                  <div className="dropdown-divider"></div>
                   <button onClick={handleLogout} className="dropdown-item logout">
+                    <span className="dropdown-icon">🚪</span>
                     Logout
                   </button>
                 </div>

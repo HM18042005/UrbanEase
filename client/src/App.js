@@ -2,55 +2,193 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import './App.css';
 
-// Import all page components
-import LandingPage from './pages/LandingPage';
-import HomePage from './pages/HomePage';
-import ServicesPage from './pages/ServicesPage';
-import ServiceDetail from './pages/ServiceDetail';
-import Dashboard from './pages/Dashboard';
-import ProviderServicesPage from './pages/ProviderServicesPage';
-import ProviderMessagesPage from './pages/ProviderMessagesPage';
-import ProviderSchedulePage from './pages/ProviderSchedulePage';
-import ProviderReportsPage from './pages/ProviderReportsPage';
-import AdminDashboard from './pages/AdminDashboard';
-import BookingsPage from './pages/BookingsPage';
-import ProfilePage from './pages/ProfilePage';
-import AdminUsersPage from './pages/AdminUsersPage';
-import AdminServicesPage from './pages/AdminServicesPage';
-import AdminBookingsPage from './pages/AdminBookingsPage';
-import AdminReviewsPage from './pages/AdminReviewsPage';
-import AdminReportsPage from './pages/AdminReportsPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
+// Import client pages
+import LandingPage from './pages/client/LandingPage';
+import HomePage from './pages/client/HomePage';
+import ServicesPage from './pages/client/ServicesPage';
+import ServiceDetail from './pages/client/ServiceDetail';
+import BookingsPage from './pages/client/BookingsPage';
+import ProfilePage from './pages/client/ProfilePage';
+import LoginPage from './pages/client/LoginPage';
+import RegisterPage from './pages/client/RegisterPage';
+
+// Import provider pages
+import Dashboard from './pages/provider/Dashboard';
+import ProviderServicesPage from './pages/provider/ProviderServicesPage';
+import ProviderMessagesPage from './pages/provider/ProviderMessagesPage';
+import ProviderSchedulePage from './pages/provider/ProviderSchedulePage';
+import ProviderReportsPage from './pages/provider/ProviderReportsPage';
+
+// Import admin pages
+import AdminDashboard from './pages/admin/AdminDashboard';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminServicesPage from './pages/admin/AdminServicesPage';
+import AdminBookingsPage from './pages/admin/AdminBookingsPage';
+import AdminReviewsPage from './pages/admin/AdminReviewsPage';
+import AdminReportsPage from './pages/admin/AdminReportsPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+
+// Import ProtectedRoute component
+import ProtectedRoute from './components/ProtectedRoute';
+import RoleBasedRedirect from './components/RoleBasedRedirect';
 
 function App() {
   return (
     <Router>
       <div className="App">
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          {/* Root path - redirect based on user role */}
+          <Route path="/" element={<RoleBasedRedirect />} />
+          
+          {/* Public routes - no authentication required */}
           <Route path="/landing" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/home" element={<HomePage />} />
-          <Route path="/services" element={<ServicesPage />} />
-          <Route path="/service/:id" element={<ServiceDetail />} />
-          {/* Provider routes */}
-          <Route path="/provider" element={<Dashboard />} />
-          <Route path="/provider/services" element={<ProviderServicesPage />} />
-          <Route path="/provider/messages" element={<ProviderMessagesPage />} />
-          <Route path="/provider/schedule" element={<ProviderSchedulePage />} />
-          <Route path="/provider/reports" element={<ProviderReportsPage />} />
+          
+          {/* Customer/User routes - accessible by all authenticated users */}
+          <Route 
+            path="/home" 
+            element={
+              <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
+                <HomePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/services" 
+            element={
+              <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
+                <ServicesPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/service/:id" 
+            element={
+              <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
+                <ServiceDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/bookings" 
+            element={
+              <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
+                <BookingsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/profile" 
+            element={
+              <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
+                <ProfilePage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Provider routes - only accessible by providers (and admins for oversight) */}
+          <Route 
+            path="/provider" 
+            element={
+              <ProtectedRoute allowedRoles={['provider']}>
+                <Dashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/provider/services" 
+            element={
+              <ProtectedRoute allowedRoles={['provider']}>
+                <ProviderServicesPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/provider/messages" 
+            element={
+              <ProtectedRoute allowedRoles={['provider']}>
+                <ProviderMessagesPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/provider/schedule" 
+            element={
+              <ProtectedRoute allowedRoles={['provider']}>
+                <ProviderSchedulePage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/provider/reports" 
+            element={
+              <ProtectedRoute allowedRoles={['provider']}>
+                <ProviderReportsPage />
+              </ProtectedRoute>
+            } 
+          />
+
+          {/* Admin routes - only accessible by admins */}
+          <Route 
+            path="/admin" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/users" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminUsersPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/services" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminServicesPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/bookings" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminBookingsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/reviews" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminReviewsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/reports" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminReportsPage />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/admin/settings" 
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminSettingsPage />
+              </ProtectedRoute>
+            } 
+          />
+
           {/* Backward compatibility redirect */}
           <Route path="/dashboard" element={<Navigate to="/provider" replace />} />
-          <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/admin/users" element={<AdminUsersPage />} />
-            <Route path="/admin/services" element={<AdminServicesPage />} />
-            <Route path="/admin/bookings" element={<AdminBookingsPage />} />
-            <Route path="/admin/reviews" element={<AdminReviewsPage />} />
-            <Route path="/admin/reports" element={<AdminReportsPage />} />
-          <Route path="/bookings" element={<BookingsPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </div>
     </Router>

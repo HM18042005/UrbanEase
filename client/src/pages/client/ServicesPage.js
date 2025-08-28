@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import Header from '../components/Header';
-import ServiceCard from '../components/ServiceCard';
-import './ServicesPage.css';
+import Header from '../../components/Header';
+import ServiceCard from '../../components/ServiceCard';
+import '../ServicesPage.css';
 
 // Mock services data
 const mockServices = [
@@ -35,36 +35,6 @@ const mockServices = [
     category: 'Pet Care',
     image: '/api/placeholder/300/200',
     startingPrice: 15
-  },
-  {
-    id: 4,
-    title: 'House Painting',
-    description: 'Professional interior and exterior painting.',
-    price: 150,
-    rating: 4.6,
-    category: 'Handyman',
-    image: '/api/placeholder/300/200',
-    startingPrice: 100
-  },
-  {
-    id: 5,
-    title: 'Garden Maintenance',
-    description: 'Complete garden care and landscaping.',
-    price: 75,
-    rating: 4.4,
-    category: 'Gardening',
-    image: '/api/placeholder/300/200',
-    startingPrice: 40
-  },
-  {
-    id: 6,
-    title: 'Pet Grooming',
-    description: 'Professional pet grooming services.',
-    price: 60,
-    rating: 4.9,
-    category: 'Pet Care',
-    image: '/api/placeholder/300/200',
-    startingPrice: 35
   }
 ];
 
@@ -79,8 +49,7 @@ const ServicesPage = () => {
     'All Services',
     'Cleaning',
     'Handyman',
-    'Pet Care',
-    'Gardening'
+    'Pet Care'
   ];
 
   useEffect(() => {

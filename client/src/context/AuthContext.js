@@ -20,8 +20,8 @@ export const AuthProvider = ({ children }) => {
     return res;
   };
 
-  const register = async (name, email, password) => {
-    const res = await Auth.register({ name, email, password });
+  const register = async (name, email, password, role = 'customer') => {
+    const res = await Auth.register({ name, email, password, role });
     setUser(res.user);
     return res;
   };
@@ -32,7 +32,14 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      isAuthenticated: !!user,
+      login, 
+      register, 
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );

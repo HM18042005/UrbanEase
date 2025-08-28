@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import './Auth.css';
+import { useAuth } from '../../context/AuthContext';
+import '../Auth.css';
 
 export default function RegisterPage() {
   const { register } = useAuth();
@@ -9,6 +9,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('customer');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -17,8 +18,10 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      await register(name, email, password);
-      navigate('/home');
+      await register(name, email, password, role);
+      // Redirect based on role
+      const redirectPath = role === 'provider' ? '/provider' : '/home';
+      navigate(redirectPath);
     } catch (err) {
       setError(err?.response?.data?.message || 'Registration failed');
     } finally {
@@ -69,6 +72,45 @@ export default function RegisterPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+
+            <label className="auth-label">Account Type</label>
+            <div className="role-selection">
+              <div className="role-option">
+                <input
+                  type="radio"
+                  id="customer"
+                  name="role"
+                  value="customer"
+                  checked={role === 'customer'}
+                  onChange={(e) => setRole(e.target.value)}
+                />
+                <label htmlFor="customer" className="role-label">
+                  <div className="role-icon">👤</div>
+                  <div className="role-info">
+                    <div className="role-title">Customer</div>
+                    <div className="role-description">Book services and manage appointments</div>
+                  </div>
+                </label>
+              </div>
+              
+              <div className="role-option">
+                <input
+                  type="radio"
+                  id="provider"
+                  name="role"
+                  value="provider"
+                  checked={role === 'provider'}
+                  onChange={(e) => setRole(e.target.value)}
+                />
+                <label htmlFor="provider" className="role-label">
+                  <div className="role-icon">💼</div>
+                  <div className="role-info">
+                    <div className="role-title">Service Provider</div>
+                    <div className="role-description">Offer services and manage business</div>
+                  </div>
+                </label>
+              </div>
+            </div>
 
             <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? 'Creating…' : 'Create Account'}

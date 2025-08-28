@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import './Auth.css';
+import { useAuth } from '../../context/AuthContext';
+import '../Auth.css';
 
-export default function RegisterPage() {
-  const { register } = useAuth();
+export default function LoginPage() {
+  const { login } = useAuth();
   const navigate = useNavigate();
-  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -17,10 +16,10 @@ export default function RegisterPage() {
     setError('');
     setLoading(true);
     try {
-      await register(name, email, password);
+      await login(email, password);
       navigate('/home');
     } catch (err) {
-      setError(err?.response?.data?.message || 'Registration failed');
+      setError(err?.response?.data?.message || 'Sign in failed');
     } finally {
       setLoading(false);
     }
@@ -32,24 +31,14 @@ export default function RegisterPage() {
         <div className="auth-main">
           <div className="auth-header">
             <div className="auth-logo">⚡</div>
-            <h1 className="auth-title">Create Account</h1>
-            <p className="auth-subtitle">Join UrbanEase in a minute</p>
+            <h1 className="auth-title">Sign In</h1>
+            <p className="auth-subtitle">Continue to access your dashboard</p>
           </div>
-
           <div className="auth-divider"><span>or</span></div>
 
           {error && <div className="auth-error">{error}</div>}
 
           <form className="auth-form" onSubmit={onSubmit}>
-            <label className="auth-label">Full Name</label>
-            <input
-              className="auth-input"
-              placeholder="Enter your full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-
             <label className="auth-label">Email</label>
             <input
               type="email"
@@ -60,24 +49,27 @@ export default function RegisterPage() {
               required
             />
 
-            <label className="auth-label">Password</label>
+            <div className="auth-row">
+              <label className="auth-label">Password</label>
+              <Link to="/forgot" className="auth-link">Forgot Password?</Link>
+            </div>
             <input
               type="password"
               className="auth-input"
-              placeholder="Create a password"
+              placeholder="Enter your password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
 
             <button type="submit" className="auth-submit" disabled={loading}>
-              {loading ? 'Creating…' : 'Create Account'}
+              {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 
           <div className="auth-footer">
-            <span>Already have an account?</span>
-            <Link to="/login" className="auth-link">Sign in</Link>
+            <span>New here?</span>
+            <Link to="/register" className="auth-link">Create an account</Link>
           </div>
         </div>
 

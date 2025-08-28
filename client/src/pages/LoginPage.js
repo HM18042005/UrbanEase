@@ -34,18 +34,6 @@ export default function LoginPage() {
             <h1 className="auth-title">Sign In</h1>
             <p className="auth-subtitle">Continue to access your dashboard</p>
           </div>
-
-          <div className="auth-social">
-            <button type="button" className="social-btn">
-              <span className="social-icon">🟦</span>
-              Sign in with Google
-            </button>
-            <button type="button" className="social-btn">
-              <span className="social-icon"></span>
-              Sign in with Apple
-            </button>
-          </div>
-
           <div className="auth-divider"><span>or</span></div>
 
           {error && <div className="auth-error">{error}</div>}
