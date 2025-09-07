@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header';
 import { useAuth } from '../../context/AuthContext';
 import * as Auth from '../../api/auth';
-import '../ProfilePage.css';
+import './ProfilePage.css';
 
 const ProfilePage = () => {
   const { user } = useAuth();

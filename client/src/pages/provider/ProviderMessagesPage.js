@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header';
-import '../Dashboard.css';
+import { api } from '../../api/provider';
+import './Dashboard.css';
 
 const ProviderMessagesPage = () => {
   const [conversations, setConversations] = useState([]);
@@ -8,85 +9,72 @@ const ProviderMessagesPage = () => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Mock conversations data
-    setConversations([
-      {
-        id: 1,
-        customerName: 'Sarah Johnson',
-        customerAvatar: '👤',
-        lastMessage: 'What time works best for the cleaning service?',
-        lastMessageTime: '10 minutes ago',
-        unreadCount: 2,
-        service: 'House Cleaning',
-        isOnline: true
-      },
-      {
-        id: 2,
-        customerName: 'Mike Davis',
-        customerAvatar: '👤',
-        lastMessage: 'Thank you for the excellent service!',
-        lastMessageTime: '1 hour ago',
-        unreadCount: 0,
-        service: 'Window Cleaning',
-        isOnline: false
-      },
-      {
-        id: 3,
-        customerName: 'Emily Chen',
-        customerAvatar: '👤',
-        lastMessage: 'Could you also clean the garage?',
-        lastMessageTime: '3 hours ago',
-        unreadCount: 1,
-        service: 'House Cleaning',
-        isOnline: true
-      }
-    ]);
+    fetchConversations();
   }, []);
 
-  // Mock messages for selected conversation
+  const fetchConversations = async () => {
+    try {
+      setLoading(true);
+      const response = await api.getMessages();
+      setConversations(response.data.conversations || []);
+    } catch (error) {
+      console.error('Error fetching conversations:', error);
+      setError('Failed to load conversations');
+      setConversations([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchMessages = async (customerId) => {
+    try {
+      const response = await api.getConversation(customerId);
+      setMessages(response.data.messages || []);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      setMessages([]);
+    }
+  };
+
   useEffect(() => {
     if (selectedConversation) {
-      setMessages([
-        {
-          id: 1,
-          sender: 'customer',
-          content: selectedConversation.lastMessage,
-          timestamp: selectedConversation.lastMessageTime
-        },
-        {
-          id: 2,
-          sender: 'provider',
-          content: 'I can help you with that! What day works best for you?',
-          timestamp: '5 minutes ago'
-        }
-      ]);
+      fetchMessages(selectedConversation._id);
     }
   }, [selectedConversation]);
 
   const filteredConversations = conversations.filter(conv =>
-    conv.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    conv.service.toLowerCase().includes(searchQuery.toLowerCase())
+    conv._id?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     if (newMessage.trim() && selectedConversation) {
-      const message = {
-        id: messages.length + 1,
-        sender: 'provider',
-        content: newMessage,
-        timestamp: 'Just now'
-      };
-      setMessages([...messages, message]);
-      setNewMessage('');
+      try {
+        const messageData = {
+          customer: selectedConversation._id._id,
+          content: newMessage
+        };
+        const response = await api.sendMessage(messageData);
+        setMessages([...messages, response.data.message]);
+        setNewMessage('');
+      } catch (error) {
+        console.error('Error sending message:', error);
+      }
     }
   };
 
-  const markAsRead = (conversationId) => {
-    setConversations(conversations.map(conv =>
-      conv.id === conversationId ? { ...conv, unreadCount: 0 } : conv
-    ));
+  const markAsRead = async (customerId) => {
+    try {
+      await api.markMessagesRead(customerId);
+      setConversations(conversations.map(conv =>
+        conv._id._id === customerId ? { ...conv, unreadCount: 0 } : conv
+      ));
+    } catch (error) {
+      console.error('Error marking messages as read:', error);
+    }
   };
 
   const totalUnread = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);

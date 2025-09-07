@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../LandingPage.css';
+import { useAuth } from '../../context/AuthContext';
+import { authAPI } from '../../api/auth';
+import './LandingPage.css';
 
 /**
  * LandingPage Component
@@ -23,11 +25,12 @@ const LandingPage = () => {
     confirmPassword: '',
     fullName: '',
     phone: '',
-    userType: 'user' // user, provider, admin
+    userType: 'customer' // customer, provider
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const { login, register } = useAuth();
 
   const handleInputChange = (e) => {
     setFormData({
@@ -67,17 +70,60 @@ const LandingPage = () => {
     if (!validateForm()) return;
 
     setLoading(true);
+    setError('');
+
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Store token and redirect
-      localStorage.setItem('token', 'dummy-token');
-      localStorage.setItem('userType', formData.userType);
-      
-      navigate('/home');
+      if (activeTab === 'login') {
+        // Login
+        const response = await authAPI.login({
+          email: formData.email,
+          password: formData.password
+        });
+
+        // Store token and set user through context
+        localStorage.setItem('token', response.token);
+        
+        // Use AuthContext login for proper state management
+        await login(formData.email, formData.password);
+        
+        // Redirect based on user role
+        switch (response.user.role) {
+          case 'admin':
+            navigate('/admin');
+            break;
+          case 'provider':
+            navigate('/provider');
+            break;
+          default:
+            navigate('/home');
+        }
+      } else {
+        // Signup
+        const response = await authAPI.register({
+          name: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          role: formData.userType
+        });
+
+        // Store token and set user through context
+        localStorage.setItem('token', response.token);
+        
+        // Use AuthContext register for proper state management
+        await register(formData.fullName, formData.email, formData.password, formData.userType);
+        
+        // Redirect based on user role
+        switch (response.user.role) {
+          case 'provider':
+            navigate('/provider');
+            break;
+          default:
+            navigate('/home');
+        }
+      }
     } catch (err) {
-      setError('Authentication failed. Please try again.');
+      console.error('Authentication error:', err);
+      setError(err.response?.data?.message || 'Authentication failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -186,7 +232,7 @@ const LandingPage = () => {
                     onChange={handleInputChange}
                     className="form-input"
                   >
-                    <option value="user">Customer</option>
+                    <option value="customer">Customer</option>
                     <option value="provider">Service Provider</option>
                   </select>
                 </div>

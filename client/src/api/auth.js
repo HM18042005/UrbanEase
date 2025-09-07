@@ -8,3 +8,13 @@ export const me = () => api.get('/auth/me').then(r => r.data);
 // Profile API calls
 export const getProfile = () => api.get('/profile').then(r => r.data);
 export const updateProfile = (data) => api.patch('/profile', data).then(r => r.data);
+
+// Export as authAPI object
+export const authAPI = {
+  register,
+  login,
+  logout,
+  me,
+  getProfile,
+  updateProfile
+};

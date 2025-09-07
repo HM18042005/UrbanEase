@@ -11,17 +11,20 @@ import { getDefaultRedirectPath } from '../utils/roleUtils';
  * Why: Ensures users land on the right page for their role
  */
 const RoleBasedRedirect = () => {
-  const { user, isAuthenticated } = useAuth() || {};
+  const { user, isAuthenticated, loading } = useAuth() || {};
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Don't redirect while still loading user data
+    if (loading) return;
+    
     if (isAuthenticated && user?.role) {
       const redirectPath = getDefaultRedirectPath(user.role);
       navigate(redirectPath, { replace: true });
-    } else if (!isAuthenticated) {
-      navigate('/login', { replace: true });
+    } else if (!loading && !isAuthenticated) {
+      navigate('/landing', { replace: true });
     }
-  }, [isAuthenticated, user?.role, navigate]);
+  }, [isAuthenticated, user?.role, navigate, loading]);
 
   // Show loading state while redirecting
   return (

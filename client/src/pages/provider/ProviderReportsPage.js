@@ -1,100 +1,54 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header';
-import '../Dashboard.css';
+import { api } from '../../api/provider';
+import './Dashboard.css';
 
 const ProviderReportsPage = () => {
-  const [timeRange, setTimeRange] = useState('thisMonth');
+  const [timeRange, setTimeRange] = useState('30d');
   const [reportData, setReportData] = useState({});
   const [earnings, setEarnings] = useState([]);
   const [serviceStats, setServiceStats] = useState([]);
   const [customerStats, setCustomerStats] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    // Mock report data based on time range
-    const mockData = {
-      thisWeek: {
-        totalEarnings: 420,
-        totalBookings: 8,
-        avgRating: 4.8,
-        completionRate: 95,
-        newCustomers: 3,
-        repeatCustomers: 5
-      },
-      thisMonth: {
-        totalEarnings: 1850,
-        totalBookings: 37,
-        avgRating: 4.7,
-        completionRate: 92,
-        newCustomers: 15,
-        repeatCustomers: 22
-      },
-      lastMonth: {
-        totalEarnings: 1650,
-        totalBookings: 33,
-        avgRating: 4.6,
-        completionRate: 89,
-        newCustomers: 12,
-        repeatCustomers: 21
-      },
-      last3Months: {
-        totalEarnings: 5200,
-        totalBookings: 104,
-        avgRating: 4.7,
-        completionRate: 91,
-        newCustomers: 42,
-        repeatCustomers: 62
-      }
-    };
-
-    setReportData(mockData[timeRange]);
-
-    // Mock earnings data for chart
-    const earningsData = {
-      thisWeek: [
-        { day: 'Mon', amount: 45 },
-        { day: 'Tue', amount: 80 },
-        { day: 'Wed', amount: 65 },
-        { day: 'Thu', amount: 95 },
-        { day: 'Fri', amount: 75 },
-        { day: 'Sat', amount: 60 },
-        { day: 'Sun', amount: 0 }
-      ],
-      thisMonth: [
-        { period: 'Week 1', amount: 420 },
-        { period: 'Week 2', amount: 380 },
-        { period: 'Week 3', amount: 520 },
-        { period: 'Week 4', amount: 530 }
-      ],
-      lastMonth: [
-        { period: 'Week 1', amount: 380 },
-        { period: 'Week 2', amount: 420 },
-        { period: 'Week 3', amount: 450 },
-        { period: 'Week 4', amount: 400 }
-      ]
-    };
-
-    setEarnings(earningsData[timeRange] || earningsData.thisMonth);
-
-    // Mock service statistics
-    setServiceStats([
-      { service: 'House Cleaning', bookings: 25, earnings: 1250, avgRating: 4.8 },
-      { service: 'Window Cleaning', bookings: 15, earnings: 525, avgRating: 4.9 },
-      { service: 'Post-Construction Cleanup', bookings: 8, earnings: 960, avgRating: 4.7 }
-    ]);
-
-    // Mock customer statistics
-    setCustomerStats({
-      totalCustomers: 37,
-      newCustomers: 15,
-      repeatCustomers: 22,
-      avgCustomerValue: 50,
-      topCustomers: [
-        { name: 'Sarah Johnson', bookings: 5, totalSpent: 250 },
-        { name: 'Mike Davis', bookings: 4, totalSpent: 180 },
-        { name: 'Emily Chen', bookings: 3, totalSpent: 165 }
-      ]
-    });
+    fetchReports();
   }, [timeRange]);
+
+  const fetchReports = async () => {
+    try {
+      setLoading(true);
+      const [reportsResponse, earningsResponse, performanceResponse, customerResponse] = await Promise.all([
+        api.getReports(timeRange),
+        api.getEarningsReport(timeRange),
+        api.getPerformanceReport(),
+        api.getCustomerReport()
+      ]);
+
+      setReportData(reportsResponse.data);
+      setEarnings(earningsResponse.data.earnings || []);
+      setServiceStats(performanceResponse.data.performance || []);
+      setCustomerStats({
+        customers: customerResponse.data.customers || [],
+        totalCustomers: customerResponse.data.customers?.length || 0
+      });
+    } catch (error) {
+      console.error('Error fetching reports:', error);
+      setError('Failed to load reports');
+      // Set empty data instead of mock data
+      setReportData({
+        earnings: { totalEarnings: 0, completedBookings: 0, avgBookingValue: 0 },
+        bookingStatus: [],
+        ratings: { avgRating: 0, totalReviews: 0 }
+      });
+      setEarnings([]);
+      setServiceStats([]);
+      setCustomerStats({ customers: [], totalCustomers: 0 });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getChangePercentage = (current, previous) => {
     if (!previous) return 0;

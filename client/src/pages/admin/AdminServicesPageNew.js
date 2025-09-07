@@ -29,8 +29,6 @@ const AdminServicesPage = () => {
 
   // Service statistics
   const stats = useMemo(() => {
-    if (!Array.isArray(services)) return { total: 0, active: 0, pending: 0, suspended: 0, categories: 0, avgRating: 0 };
-    
     const total = services.length;
     const active = services.filter(s => s.status === 'active').length;
     const pending = services.filter(s => s.status === 'pending').length;
@@ -53,11 +51,8 @@ const AdminServicesPage = () => {
       setError('');
       
       // Fetch real services data from API
-      const response = await adminAPI.getAllServices();
-      const servicesData = response?.data || response?.services || response || [];
-      
-      // Ensure we always set an array
-      setServices(Array.isArray(servicesData) ? servicesData : []);
+      const servicesData = await adminAPI.getAllServices();
+      setServices(servicesData || []);
     } catch (err) {
       console.error('Error fetching services:', err);
       setError('Failed to load services');
@@ -73,13 +68,11 @@ const AdminServicesPage = () => {
       await adminAPI.updateServiceStatus(serviceId, newStatus);
       
       // Update local state
-      if (Array.isArray(services)) {
-        setServices(services.map(service => 
-          service._id === serviceId 
-            ? { ...service, status: newStatus }
-            : service
-        ));
-      }
+      setServices(services.map(service => 
+        service._id === serviceId 
+          ? { ...service, status: newStatus }
+          : service
+      ));
     } catch (err) {
       console.error('Error updating service status:', err);
       setError(err.response?.data?.message || 'Failed to update service status');
@@ -87,8 +80,6 @@ const AdminServicesPage = () => {
   };
 
   const filteredServices = useMemo(() => {
-    if (!Array.isArray(services)) return [];
-    
     return services.filter(service => {
       const matchesSearch = 
         service.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,7 +95,6 @@ const AdminServicesPage = () => {
   }, [services, searchTerm, categoryFilter, statusFilter]);
 
   const categories = useMemo(() => {
-    if (!Array.isArray(services)) return [];
     return [...new Set(services.map(s => s.category))];
   }, [services]);
 

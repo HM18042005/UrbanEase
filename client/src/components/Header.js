@@ -69,12 +69,20 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                 Users
               </Link>
               <Link to="/admin/services" className="nav-link">
-                <span className="nav-icon">🔧</span>
+                <span className="nav-icon">⚙️</span>
                 Services
               </Link>
               <Link to="/admin/bookings" className="nav-link">
                 <span className="nav-icon">📅</span>
                 Bookings
+              </Link>
+              <Link to="/admin/reviews" className="nav-link">
+                <span className="nav-icon">⭐</span>
+                Reviews
+              </Link>
+              <Link to="/admin/reports" className="nav-link">
+                <span className="nav-icon">📈</span>
+                Reports
               </Link>
             </>
           ) : (
@@ -124,7 +132,7 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                 onClick={() => setShowProfile(!showProfile)}
               >
                 <div className="profile-icon">
-                  {userType === 'provider' ? '📊' : userType === 'admin' ? '🔧' : '👤'}
+                  {userType === 'provider' ? '�' : userType === 'admin' ? '⚙️' : '👤'}
                 </div>
                 <span className="profile-role">
                   {userType === 'provider' ? 'Provider' : userType === 'admin' ? 'Admin' : 'User'}
@@ -162,12 +170,32 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                   ) : userType === 'admin' ? (
                     <>
                       <Link to="/admin" className="dropdown-item">
-                        <span className="dropdown-icon">🔧</span>
+                        <span className="dropdown-icon">�</span>
                         Admin Dashboard
                       </Link>
                       <Link to="/admin/users" className="dropdown-item">
                         <span className="dropdown-icon">👥</span>
                         Manage Users
+                      </Link>
+                      <Link to="/admin/services" className="dropdown-item">
+                        <span className="dropdown-icon">🛠️</span>
+                        Manage Services
+                      </Link>
+                      <Link to="/admin/bookings" className="dropdown-item">
+                        <span className="dropdown-icon">📋</span>
+                        Manage Bookings
+                      </Link>
+                      <Link to="/admin/reviews" className="dropdown-item">
+                        <span className="dropdown-icon">⭐</span>
+                        Manage Reviews
+                      </Link>
+                      <Link to="/admin/reports" className="dropdown-item">
+                        <span className="dropdown-icon">📈</span>
+                        Reports & Analytics
+                      </Link>
+                      <Link to="/admin/settings" className="dropdown-item">
+                        <span className="dropdown-icon">⚙️</span>
+                        System Settings
                       </Link>
                     </>
                   ) : (
@@ -182,7 +210,7 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                           className="dropdown-item"
                         >
                           <span className="dropdown-icon">
-                            {user.role === 'provider' ? '💼' : '🔧'}
+                            {user.role === 'provider' ? '💼' : '�'}
                           </span>
                           {user.role === 'provider' ? 'Provider Mode' : 'Admin Mode'}
                         </Link>

@@ -49,6 +49,10 @@ app.use('/api/messages', messageRoutes);
 const userRoutes = require('./routes/userRoutes');
 app.use('/api/users', userRoutes);
 
+// Provider routes
+const providerRoutes = require('./routes/providerRoutes');
+app.use('/api/provider', providerRoutes);
+
 // Admin routes
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes);

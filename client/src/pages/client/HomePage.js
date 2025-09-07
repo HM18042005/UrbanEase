@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Header from '../../components/Header';
 import ServiceCard from '../../components/ServiceCard';
-import '../HomePage.css';
+import { getFeaturedServices, getCategories } from '../../api/services';
+import './HomePage.css';
 
 /**
  * HomePage Component
@@ -22,82 +23,35 @@ const HomePage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [featuredServices, setFeaturedServices] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock data - would come from API in real app
   useEffect(() => {
-    setFeaturedServices([
-      {
-        id: 1,
-        title: 'Home Cleaning',
-        description: 'Professional home cleaning services',
-        image: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&h=200&fit=crop',
-        category: 'Cleaning',
-        rating: 4.8,
-        reviews: 125,
-        startingPrice: 25
-      },
-      {
-        id: 2,
-        title: 'Handyman Services',
-        description: 'Reliable handyman for all your needs',
-        image: 'https://images.unsplash.com/photo-1504148455328-c376907d081c?w=300&h=200&fit=crop',
-        category: 'Handyman',
-        rating: 4.9,
-        reviews: 87,
-        startingPrice: 35
-      },
-      {
-        id: 3,
-        title: 'Pet Sitting',
-        description: 'Trusted care for your pets',
-        image: 'https://images.unsplash.com/photo-1601758228041-f3b2795255f1?w=300&h=200&fit=crop',
-        category: 'Pet Care',
-        rating: 4.7,
-        reviews: 203,
-        startingPrice: 20
-      },
-      {
-        id: 4,
-        title: 'Personal Training',
-        description: 'Certified personal trainers',
-        image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=300&h=200&fit=crop',
-        category: 'Fitness',
-        rating: 4.9,
-        reviews: 156,
-        startingPrice: 50
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch featured services and categories from API
+        const [servicesData, categoriesData] = await Promise.all([
+          getFeaturedServices().catch(() => []),
+          getCategories().catch(() => [])
+        ]);
+        
+        setFeaturedServices(servicesData || []);
+        setCategories(categoriesData || []);
+        
+      } catch (err) {
+        console.error('Error fetching homepage data:', err);
+        setError('Failed to load homepage data');
+        // Set empty arrays as fallback
+        setFeaturedServices([]);
+        setCategories([]);
+      } finally {
+        setLoading(false);
       }
-    ]);
+    };
 
-    setCategories([
-      {
-        id: 1,
-        name: 'Moving & Packing',
-        description: 'Efficient moving and packing solutions',
-        image: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=200&fit=crop',
-        serviceCount: 24
-      },
-      {
-        id: 2,
-        name: 'Furniture Assembly',
-        description: 'Expert furniture assembly services',
-        image: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&h=200&fit=crop',
-        serviceCount: 18
-      },
-      {
-        id: 3,
-        name: 'Gardening',
-        description: 'Professional gardening and landscaping',
-        image: 'https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=300&h=200&fit=crop',
-        serviceCount: 32
-      },
-      {
-        id: 4,
-        name: 'Car Washing',
-        description: 'Convenient car washing at your location',
-        image: 'https://images.unsplash.com/photo-1558584673-c834fb4d6f01?w=300&h=200&fit=crop',
-        serviceCount: 15
-      }
-    ]);
+    fetchData();
   }, []);
 
   const handleSearch = (e) => {
@@ -135,15 +89,31 @@ const HomePage = () => {
           {/* Featured Services */}
           <section className="featured-section">
             <h2 className="section-title">Featured Services</h2>
-            <div className="services-grid medium">
-              {featuredServices.map(service => (
-                <ServiceCard 
-                  key={service.id} 
-                  service={service} 
-                  size="medium"
-                />
-              ))}
-            </div>
+            
+            {loading ? (
+              <div className="loading-state">
+                <p>Loading services...</p>
+              </div>
+            ) : error ? (
+              <div className="error-state">
+                <p>Error: {error}</p>
+                <button onClick={() => window.location.reload()}>Retry</button>
+              </div>
+            ) : featuredServices.length === 0 ? (
+              <div className="empty-state">
+                <p>No featured services available at the moment.</p>
+              </div>
+            ) : (
+              <div className="services-grid medium">
+                {featuredServices.map(service => (
+                  <ServiceCard 
+                    key={service.id} 
+                    service={service} 
+                    size="medium"
+                  />
+                ))}
+              </div>
+            )}
           </section>
 
           {/* Categories */}

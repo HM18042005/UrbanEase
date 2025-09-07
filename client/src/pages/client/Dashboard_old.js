@@ -1,81 +1,107 @@
 import React, { useState, useEffect } from 'react';
-import Header from '../components/Header';
+import Header from '../../components/Header';
 import { Link } from 'react-router-dom';
 import './Dashboard.css';
+import { bookingAPI, serviceAPI, clientAPI } from '../../api/services';
+import { useAuth } from '../../context/AuthContext';
 
 /**
- * Dashboard Component (Provider Dashboard)
+ * Dashboard Component (Client Dashboard)
  * 
- * What: Service provider's main dashboard showing earnings, bookings, and business metrics
- * When: Accessed by service providers to manage their business
- * Why: Provides overview of business performance and allows providers to manage services
+ * What: Client's main dashboard showing bookings, favorite services, and account overview
+ * When: Accessed by clients to manage their bookings and account
+ * Why: Provides overview of client's services and allows management of bookings
  * 
  * Features:
- * - Earnings overview with charts
- * - Recent bookings and requests
- * - Availability toggle
- * - Customer reviews display
- * - Performance metrics
+ * - Recent bookings overview
+ * - Upcoming appointments
+ * - Favorite services
+ * - Quick actions for booking
  */
 const Dashboard = () => {
+  const { user } = useAuth();
   const [dashboardData, setDashboardData] = useState({
-    totalEarnings: 0,
-    newRequests: 0,
-    upcomingAppointments: 0,
-    isAvailable: true
+    totalBookings: 0,
+    upcomingBookings: 0,
+    completedBookings: 0,
+    pendingBookings: 0
   });
-  const [recentReviews, setRecentReviews] = useState([]);
-  const [newRequests, setNewRequests] = useState([]);
+  const [recentBookings, setRecentBookings] = useState([]);
+  const [favoriteServices, setFavoriteServices] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Mock API call to fetch dashboard data
-    setTimeout(() => {
-      setDashboardData({
-        totalEarnings: 1250,
-        newRequests: 5,
-        upcomingAppointments: 3,
-        isAvailable: true,
-        earningsGrowth: 15,
-        lastPeriod: 30
-      });
-
-      setRecentReviews([
-        {
-          id: 1,
-          customerName: 'Sophia Carter',
-          rating: 5,
-          date: '2 weeks ago',
-          comment: 'Excellent service! Sophia was punctual, professional, and did a fantastic job. Highly recommend!'
-        },
-        {
-          id: 2,
-          customerName: 'Liam Bennett',
-          rating: 4,
-          date: '1 month ago',
-          comment: 'Liam was great, but there was a slight delay in arrival. Overall, a good experience.'
-        }
-      ]);
-
-      setNewRequests([]);
-    }, 500);
+    fetchDashboardData();
   }, []);
 
-  const toggleAvailability = () => {
-    setDashboardData(prev => ({
-      ...prev,
-      isAvailable: !prev.isAvailable
-    }));
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Fetch client's bookings
+      const bookingsResponse = await bookingAPI.getMyBookings();
+      const bookings = bookingsResponse.data || [];
+      
+      // Calculate statistics
+      const stats = {
+        totalBookings: bookings.length,
+        upcomingBookings: bookings.filter(b => 
+          ['pending', 'confirmed'].includes(b.status?.toLowerCase())
+        ).length,
+        completedBookings: bookings.filter(b => 
+          b.status?.toLowerCase() === 'completed'
+        ).length,
+        pendingBookings: bookings.filter(b => 
+          b.status?.toLowerCase() === 'pending'
+        ).length
+      };
+      
+      setDashboardData(stats);
+      
+      // Get recent bookings (last 5)
+      const recent = bookings
+        .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
+        .slice(0, 5);
+      setRecentBookings(recent);
+
+      // Fetch favorite services (or popular services if no favorites API)
+      try {
+        const featuredResponse = await serviceAPI.getFeaturedServices();
+        setFavoriteServices(featuredResponse.data?.slice(0, 6) || []);
+      } catch (serviceError) {
+        console.error('Error fetching favorite services:', serviceError);
+        setFavoriteServices([]);
+      }
+
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError(err.response?.data?.message || 'Failed to load dashboard data');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const earningsData = [
-    { month: 'Jan', earnings: 800 },
-    { month: 'Feb', earnings: 950 },
-    { month: 'Mar', earnings: 1100 },
-    { month: 'Apr', earnings: 1050 },
-    { month: 'May', earnings: 1200 },
-    { month: 'Jun', earnings: 1250 },
-    { month: 'Jul', earnings: 1400 }
-  ];
+  const getStatusColor = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'confirmed': return '#28a745';
+      case 'pending': return '#ffc107';
+      case 'completed': return '#007bff';
+      case 'cancelled': return '#dc3545';
+      default: return '#6c757d';
+    }
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'No date';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   return (
     <div className="dashboard-page">

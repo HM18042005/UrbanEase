@@ -16,12 +16,36 @@ import { canUserAccess, getDefaultRedirectPath } from '../utils/roleUtils';
  * - Admin: Can access customer/user pages AND admin pages
  */
 const ProtectedRoute = ({ children, allowedRoles = [], requireAuth = true }) => {
-  const { user, isAuthenticated } = useAuth() || {};
+  const { user, isAuthenticated, loading } = useAuth() || {};
   const location = useLocation();
+
+  // Show loading state while auth is being determined
+  if (loading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        flexDirection: 'column',
+        gap: '1rem'
+      }}>
+        <div>Loading...</div>
+        <div style={{ 
+          width: '20px', 
+          height: '20px', 
+          border: '2px solid #e2e8f0', 
+          borderTop: '2px solid #3b82f6', 
+          borderRadius: '50%', 
+          animation: 'spin 1s linear infinite' 
+        }}></div>
+      </div>
+    );
+  }
 
   // If authentication is required but user is not logged in
   if (requireAuth && !isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
+    return <Navigate to="/landing" state={{ from: location }} replace />;
   }
 
   // If no specific roles are required, allow access for authenticated users

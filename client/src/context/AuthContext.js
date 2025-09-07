@@ -8,26 +8,48 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Auth.me()
-      .then((res) => setUser(res.user))
-      .catch(() => setUser(null))
-      .finally(() => setLoading(false));
+    // Check if there's a token in localStorage before making the request
+    const token = localStorage.getItem('token');
+    if (token) {
+      Auth.me()
+        .then((res) => setUser(res.user))
+        .catch(() => {
+          // If token is invalid, remove it
+          localStorage.removeItem('token');
+          setUser(null);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   const login = async (email, password) => {
     const res = await Auth.login({ email, password });
+    if (res.token) {
+      localStorage.setItem('token', res.token);
+    }
     setUser(res.user);
     return res;
   };
 
   const register = async (name, email, password, role = 'customer') => {
     const res = await Auth.register({ name, email, password, role });
+    if (res.token) {
+      localStorage.setItem('token', res.token);
+    }
     setUser(res.user);
     return res;
   };
 
   const logout = async () => {
-    await Auth.logout();
+    try {
+      await Auth.logout();
+    } catch (error) {
+      // Continue with logout even if server call fails
+      console.error('Logout error:', error);
+    }
+    localStorage.removeItem('token');
     setUser(null);
   };
 

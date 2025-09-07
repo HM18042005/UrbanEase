@@ -1,12 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Header from '../../components/Header';
-import '../Dashboard.css';
+import { api } from '../../api/provider';
+import './Dashboard.css';
 
 const ProviderSchedulePage = () => {
   const [schedule, setSchedule] = useState({});
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [appointments, setAppointments] = useState([]);
   const [isGenerallyAvailable, setIsGenerallyAvailable] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   const daysOfWeek = useMemo(() => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], []);
   const timeSlots = [
@@ -15,49 +18,38 @@ const ProviderSchedulePage = () => {
   ];
 
   useEffect(() => {
-    // Initialize default schedule
-    const defaultSchedule = {};
-    daysOfWeek.forEach(day => {
-      defaultSchedule[day] = {
-        isAvailable: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day),
-        startTime: '9:00 AM',
-        endTime: '5:00 PM',
-        breaks: []
-      };
-    });
-    setSchedule(defaultSchedule);
+    fetchScheduleData();
+  }, [currentWeek]);
 
-    // Mock appointments data
-    setAppointments([
-      {
-        id: 1,
-        customerName: 'Sarah Johnson',
-        service: 'House Cleaning',
-        date: '2025-08-27',
-        time: '10:00 AM',
-        duration: '3 hours',
-        status: 'confirmed'
-      },
-      {
-        id: 2,
-        customerName: 'Mike Davis',
-        service: 'Window Cleaning',
-        date: '2025-08-28',
-        time: '2:00 PM',
-        duration: '2 hours',
-        status: 'pending'
-      },
-      {
-        id: 3,
-        customerName: 'Emily Chen',
-        service: 'House Cleaning',
-        date: '2025-08-29',
-        time: '11:00 AM',
-        duration: '3 hours',
-        status: 'confirmed'
-      }
-    ]);
-  }, [daysOfWeek]);
+  const fetchScheduleData = async () => {
+    try {
+      setLoading(true);
+      const weekStart = getWeekDates(currentWeek)[0];
+      const response = await api.getSchedule({
+        date: weekStart.toISOString().split('T')[0],
+        view: 'week'
+      });
+      setAppointments(response.data.bookings || []);
+      
+      // Initialize default schedule if no custom schedule exists
+      const defaultSchedule = {};
+      daysOfWeek.forEach(day => {
+        defaultSchedule[day] = {
+          isAvailable: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day),
+          startTime: '9:00 AM',
+          endTime: '5:00 PM',
+          breaks: []
+        };
+      });
+      setSchedule(defaultSchedule);
+    } catch (error) {
+      console.error('Error fetching schedule:', error);
+      setError('Failed to load schedule');
+      setAppointments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getWeekDates = (startDate) => {
     const week = [];
