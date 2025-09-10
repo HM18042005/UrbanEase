@@ -69,7 +69,7 @@ export const canAccessArea = (userRole, targetArea) => {
  */
 export const isRouteAccessible = (path, userRole) => {
   // Public routes (no authentication required)
-  const publicRoutes = ['/', '/landing', '/login', '/register'];
+  const publicRoutes = ['/', '/login', '/register'];
   if (publicRoutes.includes(path)) return true;
 
   // User/Customer routes (accessible by all authenticated users)

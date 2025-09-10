@@ -11,7 +11,7 @@ export const api = {
   createService: (serviceData) => apiClient.post('/provider/services', serviceData),
   updateService: (id, serviceData) => apiClient.put(`/provider/services/${id}`, serviceData),
   deleteService: (id) => apiClient.delete(`/provider/services/${id}`),
-  toggleServiceStatus: (id) => apiClient.patch(`/provider/services/${id}/toggle-status`),
+  toggleServiceStatus: (id) => apiClient.patch(`/provider/services/${id}/toggle`),
 
   // Message endpoints
   getMessages: () => apiClient.get('/provider/messages'),

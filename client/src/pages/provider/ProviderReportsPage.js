@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Header from '../../components/Header';
 import { api } from '../../api/provider';
 import './Dashboard.css';
@@ -9,16 +9,9 @@ const ProviderReportsPage = () => {
   const [earnings, setEarnings] = useState([]);
   const [serviceStats, setServiceStats] = useState([]);
   const [customerStats, setCustomerStats] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
-  useEffect(() => {
-    fetchReports();
-  }, [timeRange]);
-
-  const fetchReports = async () => {
+  const fetchReports = useCallback(async () => {
     try {
-      setLoading(true);
       const [reportsResponse, earningsResponse, performanceResponse, customerResponse] = await Promise.all([
         api.getReports(timeRange),
         api.getEarningsReport(timeRange),
@@ -35,7 +28,6 @@ const ProviderReportsPage = () => {
       });
     } catch (error) {
       console.error('Error fetching reports:', error);
-      setError('Failed to load reports');
       // Set empty data instead of mock data
       setReportData({
         earnings: { totalEarnings: 0, completedBookings: 0, avgBookingValue: 0 },
@@ -45,10 +37,12 @@ const ProviderReportsPage = () => {
       setEarnings([]);
       setServiceStats([]);
       setCustomerStats({ customers: [], totalCustomers: 0 });
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [timeRange]);
+
+  useEffect(() => {
+    fetchReports();
+  }, [fetchReports]);
 
   const getChangePercentage = (current, previous) => {
     if (!previous) return 0;

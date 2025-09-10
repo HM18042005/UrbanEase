@@ -11,7 +11,7 @@ export const searchServices = (query, filters = {}) =>
   api.get('/services/search', { params: { q: query, ...filters } }).then(r => r.data);
 
 export const getFeaturedServices = () => 
-  api.get('/services/featured').then(r => r.data);
+  api.get('/services/featured').then(r => r.data.services || []);
 
 export const getServicesByCategory = (category) => 
   api.get(`/services/category/${category}`).then(r => r.data);
@@ -128,7 +128,7 @@ export const getPlatformMetrics = () =>
   api.get('/admin/dashboard/metrics').then(r => r.data);
 
 export const getReports = (type, params = {}) =>
-  api.get(`/admin/reports/${type}`, { params }).then(r => r.data);
+  api.get('/admin/reports', { params: { type, ...params } }).then(r => r.data);
 
 // =================== ADMIN API OBJECT ===================
 export const adminAPI = {
@@ -193,7 +193,7 @@ export const reviewAPI = {
 
 // =================== CATEGORIES API ===================
 export const getCategories = () => 
-  api.get('/categories').then(r => r.data);
+  api.get('/services/categories').then(r => r.data.categories || []);
 
 // Export all as a single object for easy import
 const servicesAPI = {

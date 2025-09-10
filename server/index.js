@@ -57,6 +57,10 @@ app.use('/api/provider', providerRoutes);
 const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/admin', adminRoutes);
 
+// Payment routes
+const paymentRoutes = require('./routes/paymentRoutes');
+app.use('/api/payments', paymentRoutes);
+
 // Test route
 app.get('/', (req, res) => res.send('Hello from backend!'));
 
@@ -146,5 +150,21 @@ app.get('/test-db4', async (req, res) => {
     });
   }
 });
+// Create HTTP server and Socket.IO integration
+const http = require('http');
+const SocketHandler = require('./socket/socketHandler');
+
+const server = http.createServer(app);
+
+// Initialize Socket.IO
+const socketHandler = new SocketHandler(server);
+
+// Make socket handler available to routes
+app.set('socketHandler', socketHandler);
+
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📡 Socket.IO enabled for real-time chat`);
+  console.log(`🔗 WebSocket ready at ws://localhost:${PORT}`);
+});

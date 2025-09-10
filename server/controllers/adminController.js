@@ -432,10 +432,23 @@ exports.deleteService = async (req, res) => {
 // Get system reports
 exports.getReports = async (req, res) => {
   try {
-    const { type = 'summary', startDate, endDate } = req.query;
+    const { type = 'overview', startDate, endDate, dateRange } = req.query;
 
     let dateFilter = {};
-    if (startDate || endDate) {
+    
+    // Handle dateRange parameter (30days, 7days, etc.)
+    if (dateRange) {
+      const daysMap = {
+        '7days': 7,
+        '30days': 30,
+        '90days': 90,
+        '365days': 365
+      };
+      const days = daysMap[dateRange] || 30;
+      const startDateTime = new Date();
+      startDateTime.setDate(startDateTime.getDate() - days);
+      dateFilter.createdAt = { $gte: startDateTime };
+    } else if (startDate || endDate) {
       dateFilter.createdAt = {};
       if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
       if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
@@ -444,8 +457,147 @@ exports.getReports = async (req, res) => {
     let report = {};
 
     switch (type) {
+      case 'overview':
+      case 'summary':
+        // Summary report with key metrics
+        const totalUsers = await User.countDocuments();
+        const totalServices = await Service.countDocuments();
+        const totalBookings = await Booking.countDocuments();
+        const completedBookings = await Booking.countDocuments({ status: 'completed' });
+        
+        const userGrowth = await User.aggregate([
+          { $match: dateFilter },
+          {
+            $group: {
+              _id: {
+                year: { $year: '$createdAt' },
+                month: { $month: '$createdAt' }
+              },
+              users: { $sum: 1 }
+            }
+          },
+          { $sort: { '_id.year': 1, '_id.month': 1 } }
+        ]);
+
+        const serviceGrowth = await Service.aggregate([
+          { $match: dateFilter },
+          {
+            $group: {
+              _id: {
+                year: { $year: '$createdAt' },
+                month: { $month: '$createdAt' }
+              },
+              services: { $sum: 1 }
+            }
+          },
+          { $sort: { '_id.year': 1, '_id.month': 1 } }
+        ]);
+
+        report = {
+          totalUsers,
+          totalServices,
+          totalBookings,
+          completedBookings,
+          completionRate: totalBookings > 0 ? (completedBookings / totalBookings * 100).toFixed(1) : 0,
+          userGrowth,
+          serviceGrowth
+        };
+        break;
+
+      case 'users':
+        // User analytics
+        const usersByRole = await User.aggregate([
+          {
+            $group: {
+              _id: '$role',
+              count: { $sum: 1 }
+            }
+          }
+        ]);
+
+        const activeUsers = await User.countDocuments({ 
+          lastActive: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+        });
+
+        const newUsersThisPeriod = await User.countDocuments(dateFilter);
+
+        report = {
+          totalUsers: await User.countDocuments(),
+          activeUsers,
+          newUsers: newUsersThisPeriod,
+          usersByRole,
+          retentionRate: totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(1) : 0
+        };
+        break;
+
+      case 'services':
+        // Service analytics
+        const servicesByCategory = await Service.aggregate([
+          {
+            $group: {
+              _id: '$category',
+              count: { $sum: 1 },
+              avgPrice: { $avg: '$price' }
+            }
+          },
+          { $sort: { count: -1 } }
+        ]);
+
+        const activeServices = await Service.countDocuments({ isAvailable: true });
+        const newServicesThisPeriod = await Service.countDocuments(dateFilter);
+
+        report = {
+          totalServices: await Service.countDocuments(),
+          activeServices,
+          newServices: newServicesThisPeriod,
+          servicesByCategory,
+          availabilityRate: totalServices > 0 ? ((activeServices / totalServices) * 100).toFixed(1) : 0
+        };
+        break;
+
+      case 'bookings':
+        // Booking analytics
+        const bookingsByStatus = await Booking.aggregate([
+          {
+            $group: {
+              _id: '$status',
+              count: { $sum: 1 }
+            }
+          }
+        ]);
+
+        const newBookingsThisPeriod = await Booking.countDocuments(dateFilter);
+        const avgBookingValue = await Booking.aggregate([
+          { $match: { status: 'completed' } },
+          {
+            $lookup: {
+              from: 'services',
+              localField: 'service',
+              foreignField: '_id',
+              as: 'serviceData'
+            }
+          },
+          { $unwind: '$serviceData' },
+          {
+            $group: {
+              _id: null,
+              avgValue: { $avg: '$serviceData.price' }
+            }
+          }
+        ]);
+
+        report = {
+          totalBookings: await Booking.countDocuments(),
+          newBookings: newBookingsThisPeriod,
+          bookingsByStatus,
+          averageBookingValue: avgBookingValue[0]?.avgValue || 0,
+          completionRate: totalBookings > 0 ? ((completedBookings / totalBookings) * 100).toFixed(1) : 0
+        };
+        break;
+
       case 'revenue':
-        report = await Booking.aggregate([
+        // Revenue analytics
+        const revenueData = await Booking.aggregate([
           { $match: { status: 'completed', ...dateFilter } },
           {
             $lookup: {
@@ -468,6 +620,31 @@ exports.getReports = async (req, res) => {
           },
           { $sort: { '_id.year': 1, '_id.month': 1 } }
         ]);
+
+        const totalRevenue = await Booking.aggregate([
+          { $match: { status: 'completed' } },
+          {
+            $lookup: {
+              from: 'services',
+              localField: 'service',
+              foreignField: '_id',
+              as: 'serviceData'
+            }
+          },
+          { $unwind: '$serviceData' },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$serviceData.price' }
+            }
+          }
+        ]);
+
+        report = {
+          totalRevenue: totalRevenue[0]?.total || 0,
+          revenueData,
+          avgRevenuePerBooking: completedBookings > 0 ? ((totalRevenue[0]?.total || 0) / completedBookings).toFixed(2) : 0
+        };
         break;
 
       case 'popular-services':
@@ -501,39 +678,17 @@ exports.getReports = async (req, res) => {
         break;
 
       default:
-        // Summary report
-        const userGrowth = await User.aggregate([
-          { $match: dateFilter },
-          {
-            $group: {
-              _id: {
-                year: { $year: '$createdAt' },
-                month: { $month: '$createdAt' }
-              },
-              users: { $sum: 1 }
-            }
-          },
-          { $sort: { '_id.year': 1, '_id.month': 1 } }
-        ]);
-
-        const serviceGrowth = await Service.aggregate([
-          { $match: dateFilter },
-          {
-            $group: {
-              _id: {
-                year: { $year: '$createdAt' },
-                month: { $month: '$createdAt' }
-              },
-              services: { $sum: 1 }
-            }
-          },
-          { $sort: { '_id.year': 1, '_id.month': 1 } }
-        ]);
-
+        // Default to overview
+        const overviewTotalUsers = await User.countDocuments();
+        const overviewTotalServices = await Service.countDocuments();
+        const overviewTotalBookings = await Booking.countDocuments();
+        
         report = {
-          userGrowth,
-          serviceGrowth
+          totalUsers: overviewTotalUsers,
+          totalServices: overviewTotalServices,
+          totalBookings: overviewTotalBookings
         };
+        break;
     }
 
     res.json({

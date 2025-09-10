@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../../components/Header';
 import './ServiceDetail.css';
@@ -28,11 +28,7 @@ const ServiceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    fetchServiceDetail();
-  }, [id]);
-
-  const fetchServiceDetail = async () => {
+  const fetchServiceDetail = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -67,7 +63,11 @@ const ServiceDetail = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchServiceDetail();
+  }, [fetchServiceDetail]);
 
   const handleBookNow = () => {
     // Navigate to booking form - TODO: Implement booking functionality

@@ -203,7 +203,71 @@
 }
 
 @media (max-width: 480px) {
+  .container {
+    padding: 0 0.75rem;
+  }
+  
+  .home-main {
+    padding-top: 1rem;
+  }
+  
+  .hero-search {
+    padding: 1.5rem 0;
+  }
+  
+  .hero-title {
+    font-size: 1.5rem !important;
+  }
+  
+  .hero-subtitle {
+    font-size: 0.875rem;
+  }
+  
+  .search-form {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .search-input,
+  .search-button {
+    width: 100%;
+    border-radius: 8px;
+  }
+  
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-number {
+    font-size: 1.5rem;
+  }
+  
+  .category-card {
+    padding: 1rem;
+  }
+  
+  .category-icon {
+    font-size: 2rem;
+  }
+  
+  .category-title {
+    font-size: 0.875rem;
+  }
+}
+
+/* Touch optimizations */
+@media (max-width: 768px) and (pointer: coarse) {
+  .search-button,
+  .category-card {
+    min-height: 48px;
+  }
+  
+  .category-card {
+    padding: 1.25rem 1rem;
   }
 }

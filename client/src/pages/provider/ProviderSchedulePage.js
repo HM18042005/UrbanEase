@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Header from '../../components/Header';
 import { api } from '../../api/provider';
 import './Dashboard.css';
@@ -8,8 +8,6 @@ const ProviderSchedulePage = () => {
   const [currentWeek, setCurrentWeek] = useState(new Date());
   const [appointments, setAppointments] = useState([]);
   const [isGenerallyAvailable, setIsGenerallyAvailable] = useState(true);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
 
   const daysOfWeek = useMemo(() => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], []);
   const timeSlots = [
@@ -17,13 +15,21 @@ const ProviderSchedulePage = () => {
     '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'
   ];
 
-  useEffect(() => {
-    fetchScheduleData();
-  }, [currentWeek]);
+  const getWeekDates = useCallback((startDate) => {
+    const week = [];
+    const start = new Date(startDate);
+    start.setDate(start.getDate() - start.getDay()); // Start from Sunday
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+      week.push(date);
+    }
+    return week;
+  }, []);
 
-  const fetchScheduleData = async () => {
+  const fetchScheduleData = useCallback(async () => {
     try {
-      setLoading(true);
       const weekStart = getWeekDates(currentWeek)[0];
       const response = await api.getSchedule({
         date: weekStart.toISOString().split('T')[0],
@@ -44,25 +50,13 @@ const ProviderSchedulePage = () => {
       setSchedule(defaultSchedule);
     } catch (error) {
       console.error('Error fetching schedule:', error);
-      setError('Failed to load schedule');
       setAppointments([]);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, [currentWeek, daysOfWeek, getWeekDates]);
 
-  const getWeekDates = (startDate) => {
-    const week = [];
-    const start = new Date(startDate);
-    start.setDate(start.getDate() - start.getDay()); // Start from Sunday
-    
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(start);
-      date.setDate(start.getDate() + i);
-      week.push(date);
-    }
-    return week;
-  };
+  useEffect(() => {
+    fetchScheduleData();
+  }, [fetchScheduleData]);
 
   const weekDates = getWeekDates(currentWeek);
 

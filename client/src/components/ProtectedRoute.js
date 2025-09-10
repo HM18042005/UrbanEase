@@ -45,7 +45,7 @@ const ProtectedRoute = ({ children, allowedRoles = [], requireAuth = true }) => 
 
   // If authentication is required but user is not logged in
   if (requireAuth && !isAuthenticated) {
-    return <Navigate to="/landing" state={{ from: location }} replace />;
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // If no specific roles are required, allow access for authenticated users

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header';
+import PaymentModal from '../../components/PaymentModal';
 import './BookingsPage.css';
 import { bookingAPI } from '../../api/services';
 
@@ -12,6 +13,9 @@ const BookingsPage = () => {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [paymentSuccess, setPaymentSuccess] = useState('');
 
   useEffect(() => {
     fetchBookings();
@@ -71,6 +75,32 @@ const BookingsPage = () => {
       console.error('Error rescheduling booking:', err);
       alert('Failed to reschedule booking');
     }
+  };
+
+  // Payment functions
+  const handlePayNow = (booking) => {
+    setSelectedBooking(booking);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = (result) => {
+    setShowPaymentModal(false);
+    setSelectedBooking(null);
+    setPaymentSuccess('Payment successful! Your booking has been confirmed.');
+    // Refresh bookings to show updated status
+    fetchBookings();
+    // Clear success message after 5 seconds
+    setTimeout(() => setPaymentSuccess(''), 5000);
+  };
+
+  const handlePaymentError = (error) => {
+    setShowPaymentModal(false);
+    setSelectedBooking(null);
+    setError(`Payment failed: ${error}`);
+  };
+
+  const getPaymentStatus = (booking) => {
+    return booking.paymentStatus || 'unpaid';
   };
 
   const handleCancel = async (bookingId) => {
@@ -243,7 +273,13 @@ const BookingsPage = () => {
                       <div className="info-row">
                         <span className="info-label">Price:</span>
                         <span className="info-value price">
-                          ${booking.totalAmount || booking.price || 0}
+                          ₹{booking.totalAmount || booking.price || 0}
+                        </span>
+                      </div>
+                      <div className="info-row">
+                        <span className="info-label">Payment:</span>
+                        <span className={`payment-status ${getPaymentStatus(booking)}`}>
+                          {getPaymentStatus(booking).charAt(0).toUpperCase() + getPaymentStatus(booking).slice(1)}
                         </span>
                       </div>
                       
@@ -282,6 +318,14 @@ const BookingsPage = () => {
                   <div className="booking-actions">
                     {activeTab === 'upcoming' && (
                       <>
+                        {getPaymentStatus(booking) === 'unpaid' && (
+                          <button 
+                            className="action-btn pay-now"
+                            onClick={() => handlePayNow(booking)}
+                          >
+                            Pay Now
+                          </button>
+                        )}
                         <button 
                           className="action-btn primary"
                           onClick={() => handleReschedule(booking._id || booking.id)}
@@ -328,7 +372,28 @@ const BookingsPage = () => {
             </div>
           )}
         </div>
+        
+        {/* Success Message */}
+        {paymentSuccess && (
+          <div className="success-message">
+            <span className="success-icon">✅</span>
+            <span>{paymentSuccess}</span>
+          </div>
+        )}
       </div>
+      
+      {/* Payment Modal */}
+      {showPaymentModal && selectedBooking && (
+        <PaymentModal
+          booking={selectedBooking}
+          onSuccess={handlePaymentSuccess}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedBooking(null);
+          }}
+          onError={handlePaymentError}
+        />
+      )}
     </div>
   );
 };

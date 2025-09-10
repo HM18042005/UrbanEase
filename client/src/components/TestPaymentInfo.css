@@ -1,0 +1,144 @@
+/* Test Payment Info Styles */
+.test-payment-info {
+  margin-bottom: 1.5rem;
+}
+
+.test-info-toggle {
+  background: #f0f9ff;
+  border: 1px solid #0ea5e9;
+  color: #0369a1;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  width: 100%;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.test-info-toggle:hover {
+  background: #e0f2fe;
+}
+
+.test-cards-container {
+  margin-top: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+}
+
+.test-mode-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fef3c7;
+  color: #d97706;
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+}
+
+.badge-icon {
+  font-size: 1rem;
+}
+
+.test-cards-grid {
+  display: grid;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.test-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 1rem;
+}
+
+.test-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.test-card-header h4 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.test-result {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.test-card-details {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-row .label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.detail-row .value {
+  font-size: 0.75rem;
+  color: #374151;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+.test-info-note {
+  background: #dbeafe;
+  border: 1px solid #93c5fd;
+  border-radius: 6px;
+  padding: 0.75rem;
+}
+
+.test-info-note p {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #1e40af;
+}
+
+/* Mobile Responsive */
+@media (max-width: 640px) {
+  .test-cards-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .test-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}

@@ -152,7 +152,7 @@ exports.toggleServiceStatus = async (req, res) => {
       return res.status(404).json({ message: 'Service not found' });
     }
     
-    service.isActive = !service.isActive;
+    service.isAvailable = !service.isAvailable;
     await service.save();
     
     res.json({ service });

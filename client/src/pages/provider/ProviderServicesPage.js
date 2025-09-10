@@ -15,7 +15,7 @@ const ProviderServicesPage = () => {
     category: '',
     price: '',
     duration: '',
-    isActive: true
+    isAvailable: true
   });
 
   useEffect(() => {
@@ -62,7 +62,7 @@ const ProviderServicesPage = () => {
       category: service.category,
       price: service.price.toString(),
       duration: service.duration,
-      isActive: service.isActive
+      isAvailable: service.isAvailable
     });
     setShowAddModal(true);
   };
@@ -117,7 +117,7 @@ const ProviderServicesPage = () => {
       category: '',
       price: '',
       duration: '',
-      isActive: true
+      isAvailable: true
     });
   };
 
@@ -199,8 +199,8 @@ const ProviderServicesPage = () => {
                             className="dropdown-item"
                             onClick={() => handleToggleStatus(service._id)}
                           >
-                            <i className={`fas fa-${service.isActive ? 'pause' : 'play'}`}></i>
-                            {service.isActive ? 'Deactivate' : 'Activate'}
+                            <i className={`fas fa-${service.isAvailable ? 'pause' : 'play'}`}></i>
+                            {service.isAvailable ? 'Deactivate' : 'Activate'}
                           </button>
                         </li>
                         <li><hr className="dropdown-divider" /></li>
@@ -234,8 +234,8 @@ const ProviderServicesPage = () => {
                       </div>
                       <div className="detail-item">
                         <span className="detail-label">Status:</span>
-                        <span className={`badge ${service.isActive ? 'bg-success' : 'bg-danger'}`}>
-                          {service.isActive ? 'Active' : 'Inactive'}
+                        <span className={`badge ${service.isAvailable ? 'bg-success' : 'bg-danger'}`}>
+                          {service.isAvailable ? 'Active' : 'Inactive'}
                         </span>
                       </div>
                     </div>
@@ -354,8 +354,8 @@ const ProviderServicesPage = () => {
                       <input
                         className="form-check-input"
                         type="checkbox"
-                        checked={newService.isActive}
-                        onChange={(e) => setNewService({...newService, isActive: e.target.checked})}
+                        checked={newService.isAvailable}
+                        onChange={(e) => setNewService({...newService, isAvailable: e.target.checked})}
                       />
                       <label className="form-check-label">
                         Active (Available for booking)

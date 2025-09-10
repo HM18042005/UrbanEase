@@ -22,7 +22,7 @@ const RoleBasedRedirect = () => {
       const redirectPath = getDefaultRedirectPath(user.role);
       navigate(redirectPath, { replace: true });
     } else if (!loading && !isAuthenticated) {
-      navigate('/landing', { replace: true });
+      navigate('/login', { replace: true });
     }
   }, [isAuthenticated, user?.role, navigate, loading]);
 

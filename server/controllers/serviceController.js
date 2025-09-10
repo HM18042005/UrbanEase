@@ -105,7 +105,7 @@ exports.getService = async (req, res) => {
 // Create new service (providers only)
 exports.createService = async (req, res) => {
   try {
-    const { title, description, price, category } = req.body;
+    const { title, description, price, category, duration, isAvailable } = req.body;
 
     if (!title || !price) {
       return res.status(400).json({ 
@@ -119,6 +119,8 @@ exports.createService = async (req, res) => {
       description,
       price,
       category,
+      duration,
+      isAvailable: isAvailable !== undefined ? isAvailable : true, // Default to true (active)
       provider: req.user._id
     });
 
@@ -153,12 +155,14 @@ exports.updateService = async (req, res) => {
       });
     }
 
-    const { title, description, price, category } = req.body;
+    const { title, description, price, category, duration, isAvailable } = req.body;
     
     if (title) service.title = title;
     if (description) service.description = description;
     if (price) service.price = price;
     if (category) service.category = category;
+    if (duration) service.duration = duration;
+    if (isAvailable !== undefined) service.isAvailable = isAvailable;
 
     await service.save();
     await service.populate('provider', 'name email phone');
@@ -393,6 +397,28 @@ exports.searchServices = async (req, res) => {
     });
   } catch (error) {
     console.error('Search services error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Get featured services
+exports.getFeaturedServices = async (req, res) => {
+  try {
+    const { limit = 6 } = req.query;
+
+    // Get services that are featured (you can add a 'featured' field to the Service model later)
+    // For now, let's return highly rated services that are available
+    const services = await Service.find({ 
+      isAvailable: true,
+      averageRating: { $gte: 4.0 } // Services with rating 4.0 or higher
+    })
+      .populate('provider', 'name profilePicture')
+      .sort({ averageRating: -1, totalBookings: -1 })
+      .limit(Number(limit));
+
+    res.json({ success: true, services });
+  } catch (error) {
+    console.error('Get featured services error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

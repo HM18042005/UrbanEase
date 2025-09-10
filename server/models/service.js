@@ -9,6 +9,8 @@ const ServiceSchema = new mongoose.Schema({
     required: true,
   }, // service provider
   category: String,
+  isAvailable: { type: Boolean, default: true }, // Active by default
+  duration: String,
   createdAt: { type: Date, default: Date.now },
 });
 module.exports = mongoose.model("Service", ServiceSchema);

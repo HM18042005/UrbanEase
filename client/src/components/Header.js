@@ -7,6 +7,7 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
   const { user, logout } = useAuth() || {};
   const [searchQuery, setSearchQuery] = useState('');
   const [showProfile, setShowProfile] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const navigate = useNavigate();
 
   const isLoggedIn = typeof isLoggedInProp === 'boolean' ? isLoggedInProp : !!user;
@@ -35,7 +36,20 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
           UrbanEase
         </Link>
 
-        <nav className="nav-menu">
+        {/* Mobile Menu Toggle */}
+        <button 
+          className="mobile-menu-toggle desktop-hidden"
+          onClick={() => setShowMobileMenu(!showMobileMenu)}
+          aria-label="Toggle mobile menu"
+        >
+          <span className={`hamburger ${showMobileMenu ? 'active' : ''}`}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </span>
+        </button>
+
+        <nav className={`nav-menu ${showMobileMenu ? 'mobile-open' : ''}`}>
           {userType === 'provider' ? (
             // Provider-specific navigation
             <>

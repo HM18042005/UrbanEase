@@ -1,70 +1,50 @@
 import React, { useState, useEffect } from 'react';
 import Header from '../../components/Header';
+import ChatWindow from '../../components/ChatWindow';
 import { api } from '../../api/provider';
 import './Dashboard.css';
 
 const ProviderMessagesPage = () => {
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [currentUser, setCurrentUser] = useState(null);
 
+  // Get current user info
   useEffect(() => {
-    fetchConversations();
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setCurrentUser({
+          id: payload.id,
+          name: payload.name,
+          email: payload.email,
+          role: payload.role
+        });
+      } catch (error) {
+        console.error('Error parsing token:', error);
+      }
+    }
   }, []);
 
-  const fetchConversations = async () => {
-    try {
-      setLoading(true);
-      const response = await api.getMessages();
-      setConversations(response.data.conversations || []);
-    } catch (error) {
-      console.error('Error fetching conversations:', error);
-      setError('Failed to load conversations');
-      setConversations([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMessages = async (customerId) => {
-    try {
-      const response = await api.getConversation(customerId);
-      setMessages(response.data.messages || []);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-      setMessages([]);
-    }
-  };
-
   useEffect(() => {
-    if (selectedConversation) {
-      fetchMessages(selectedConversation._id);
-    }
-  }, [selectedConversation]);
+    const fetchConversations = async () => {
+      try {
+        const response = await api.getMessages();
+        setConversations(response.data.conversations || []);
+      } catch (error) {
+        console.error('Error fetching conversations:', error);
+        setConversations([]);
+      }
+    };
+    
+    fetchConversations();
+  }, []);
 
   const filteredConversations = conversations.filter(conv =>
     conv._id?.name?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const handleSendMessage = async () => {
-    if (newMessage.trim() && selectedConversation) {
-      try {
-        const messageData = {
-          customer: selectedConversation._id._id,
-          content: newMessage
-        };
-        const response = await api.sendMessage(messageData);
-        setMessages([...messages, response.data.message]);
-        setNewMessage('');
-      } catch (error) {
-        console.error('Error sending message:', error);
-      }
-    }
-  };
 
   const markAsRead = async (customerId) => {
     try {
@@ -177,75 +157,12 @@ const ProviderMessagesPage = () => {
 
             {/* Messages Area */}
             <div className="col-lg-8 col-md-7">
-              <div className="card h-100">
-                {selectedConversation ? (
-                  <>
-                    {/* Chat Header */}
-                    <div className="card-header">
-                      <div className="d-flex align-items-center justify-content-between">
-                        <div className="d-flex align-items-center">
-                          <div className="position-relative me-3" style={{fontSize: '2rem'}}>
-                            {selectedConversation.customerAvatar}
-                            {selectedConversation.isOnline && (
-                              <span className="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
-                                <span className="visually-hidden">Online</span>
-                              </span>
-                            )}
-                          </div>
-                          <div>
-                            <h5 className="mb-0">{selectedConversation.customerName}</h5>
-                            <small className="text-muted">Service: {selectedConversation.service}</small>
-                          </div>
-                        </div>
-                        <div className="d-flex gap-2 d-none d-md-flex">
-                          <button className="btn btn-outline-primary btn-sm">📞 Call</button>
-                          <button className="btn btn-outline-secondary btn-sm">📧 Email</button>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Messages List */}
-                    <div className="card-body d-flex flex-column p-0" style={{height: 'calc(100% - 140px)'}}>
-                      <div className="flex-grow-1 overflow-auto p-3">
-                        {messages.map(message => (
-                          <div 
-                            key={message.id}
-                            className={`d-flex mb-3 ${message.sender === 'provider' ? 'justify-content-end' : 'justify-content-start'}`}
-                          >
-                            <div className={`card ${message.sender === 'provider' ? 'bg-primary text-white' : 'bg-light'}`} style={{maxWidth: '70%'}}>
-                              <div className="card-body p-3">
-                                <p className="mb-1">{message.content}</p>
-                                <small className={`${message.sender === 'provider' ? 'text-white-50' : 'text-muted'}`}>
-                                  {message.timestamp}
-                                </small>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Message Input */}
-                      <div className="border-top p-3">
-                        <div className="input-group">
-                          <input
-                            type="text"
-                            className="form-control"
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            placeholder="Type your message..."
-                            onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                          />
-                          <button 
-                            className="btn btn-primary"
-                            onClick={handleSendMessage}
-                            disabled={!newMessage.trim()}
-                          >
-                            📤
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </>
+              <div className="card h-100" style={{padding: 0}}>
+                {selectedConversation && currentUser ? (
+                  <ChatWindow 
+                    conversation={selectedConversation} 
+                    currentUser={currentUser}
+                  />
                 ) : (
                   <div className="card-body d-flex align-items-center justify-content-center h-100">
                     <div className="text-center">

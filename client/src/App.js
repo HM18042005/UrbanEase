@@ -1,9 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
 
+// Import contexts
+import { SocketProvider } from './contexts/SocketContext';
+
 // Import client pages
-import LandingPage from './pages/client/LandingPage';
 import HomePage from './pages/client/HomePage';
 import ServicesPage from './pages/client/ServicesPage';
 import ServiceDetail from './pages/client/ServiceDetail';
@@ -20,7 +24,6 @@ import ProviderSchedulePage from './pages/provider/ProviderSchedulePage';
 import ProviderReportsPage from './pages/provider/ProviderReportsPage';
 
 // Import admin pages
-import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminServicesPage from './pages/admin/AdminServicesPage';
 import AdminBookingsPage from './pages/admin/AdminBookingsPage';
@@ -34,14 +37,14 @@ import RoleBasedRedirect from './components/RoleBasedRedirect';
 
 function App() {
   return (
-    <Router>
-      <div className="App">
+    <SocketProvider>
+      <Router>
+        <div className="App">
         <Routes>
           {/* Root path - redirect based on user role */}
           <Route path="/" element={<RoleBasedRedirect />} />
           
           {/* Public routes - no authentication required */}
-          <Route path="/landing" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
           
@@ -134,7 +137,7 @@ function App() {
             path="/admin" 
             element={
               <ProtectedRoute allowedRoles={['admin']}>
-                <AdminDashboard />
+                <HomePage />
               </ProtectedRoute>
             } 
           />
@@ -190,8 +193,21 @@ function App() {
           {/* Backward compatibility redirect */}
           <Route path="/dashboard" element={<Navigate to="/provider" replace />} />
         </Routes>
+        <ToastContainer
+          position="top-right"
+          autoClose={3000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
       </div>
     </Router>
+    </SocketProvider>
   );
 }
 
