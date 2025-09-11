@@ -9,19 +9,24 @@ async function dropDatabase() {
       useUnifiedTopology: true,
     });
 
-    console.log('Connected to MongoDB');
+    console.log('🔗 Connected to MongoDB');
 
     // Get the database name
     const dbName = mongoose.connection.db.databaseName;
-    console.log(`Current database: ${dbName}`);
+    console.log(`📊 Current database: ${dbName}`);
 
-    // Drop the database
+    // List all collections before dropping
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    console.log(`📁 Found ${collections.length} collections:`, collections.map(c => c.name));
+
+    // Drop the database completely
     await mongoose.connection.db.dropDatabase();
     console.log(`✅ Database '${dbName}' has been dropped successfully!`);
+    console.log('🗑️  All collections and data removed');
 
     // Close the connection
     await mongoose.connection.close();
-    console.log('Connection closed');
+    console.log('🔌 Connection closed');
     
   } catch (error) {
     console.error('❌ Error dropping database:', error);
@@ -30,4 +35,9 @@ async function dropDatabase() {
   }
 }
 
-dropDatabase();
+console.log('🚨 WARNING: This will permanently delete ALL data!');
+console.log('⏰ Starting database drop in 3 seconds...');
+
+setTimeout(() => {
+  dropDatabase();
+}, 3000);
