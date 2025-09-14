@@ -27,8 +27,24 @@ const BookingsPage = () => {
       setError(null);
       
       // Fetch all bookings and categorize them
-      const response = await bookingAPI.getMyBookings();
-      const allBookings = response.data || [];
+      const response = await bookingAPI.getBookings();
+      console.log('Bookings API response:', response);
+      
+      // Extract bookings array from response
+      const allBookings = response?.bookings || response || [];
+      console.log('Extracted bookings:', allBookings);
+      
+      // Ensure we have an array
+      if (!Array.isArray(allBookings)) {
+        console.error('Bookings data is not an array:', allBookings);
+        setError('Invalid bookings data format');
+        return;
+      }
+      
+      // Debug each booking object
+      allBookings.forEach((booking, index) => {
+        console.log(`Booking ${index}:`, booking);
+      });
       
       // Categorize bookings by status
       const categorizedBookings = {
@@ -237,7 +253,7 @@ const BookingsPage = () => {
                   <div className="booking-image">
                     <img 
                       src={booking.serviceImage || booking.image || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop'} 
-                      alt={booking.serviceName || booking.service || 'Service'} 
+                      alt={booking.serviceName || booking.service?.title || booking.service?.name || 'Service'} 
                       onError={(e) => {
                         e.target.src = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop';
                       }}
@@ -246,7 +262,7 @@ const BookingsPage = () => {
                   
                   <div className="booking-details">
                     <div className="booking-header">
-                      <h3>{booking.serviceName || booking.service || 'Service'}</h3>
+                      <h3>{booking.serviceName || booking.service?.title || booking.service?.name || 'Service'}</h3>
                       <span 
                         className="booking-status"
                         style={{ backgroundColor: getStatusColor(booking.status) }}
@@ -258,7 +274,7 @@ const BookingsPage = () => {
                     <div className="booking-info">
                       <div className="info-row">
                         <span className="info-label">Provider:</span>
-                        <span className="info-value">{booking.providerName || booking.provider || 'Not specified'}</span>
+                        <span className="info-value">{booking.providerName || booking.provider?.name || 'Not specified'}</span>
                       </div>
                       <div className="info-row">
                         <span className="info-label">Date & Time:</span>

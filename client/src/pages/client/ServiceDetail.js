@@ -28,30 +28,33 @@ const ServiceDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Debug log
+  console.log('ServiceDetail - ID from params:', id);
+
   const fetchServiceDetail = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
       
+      if (!id || id === 'undefined') {
+        setError(`Invalid service ID: ${id}. Please check the URL or go back to services.`);
+        setLoading(false);
+        return;
+      }
+      
       // Fetch service details
-      const serviceResponse = await serviceAPI.getServiceById(id);
-      const serviceData = serviceResponse.data;
+      const serviceData = await serviceAPI.getService(id);
       setService(serviceData);
       
-      // Fetch provider info if available
-      if (serviceData.providerId) {
-        try {
-          const providerResponse = await serviceAPI.getProviderById(serviceData.providerId);
-          setProvider(providerResponse.data);
-        } catch (providerError) {
-          console.error('Error fetching provider:', providerError);
-        }
+      // Provider info is already included in the service response
+      if (serviceData.provider) {
+        setProvider(serviceData.provider);
       }
       
       // Fetch reviews for this service
       try {
-        const reviewsResponse = await reviewAPI.getServiceReviews(id);
-        setReviews(reviewsResponse.data || []);
+        const reviewsData = await reviewAPI.getReviews(id);
+        setReviews(reviewsData || []);
       } catch (reviewError) {
         console.error('Error fetching reviews:', reviewError);
         setReviews([]);

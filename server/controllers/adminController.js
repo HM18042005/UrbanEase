@@ -429,6 +429,97 @@ exports.deleteService = async (req, res) => {
   }
 };
 
+// Get all reviews (admin only)
+exports.getAllReviews = async (req, res) => {
+  try {
+    const { search, rating, sortBy = 'newest', limit = 20, page = 1 } = req.query;
+
+    // Build filter
+    const filter = {};
+    if (rating && rating !== 'all') {
+      filter.rating = Number(rating);
+    }
+
+    // Build sort
+    let sort = {};
+    switch (sortBy) {
+      case 'newest':
+        sort.createdAt = -1;
+        break;
+      case 'oldest':
+        sort.createdAt = 1;
+        break;
+      case 'rating-high':
+        sort.rating = -1;
+        break;
+      case 'rating-low':
+        sort.rating = 1;
+        break;
+      default:
+        sort.createdAt = -1;
+    }
+
+    let query = Review.find(filter)
+      .populate('user', 'name email')
+      .populate('service', 'title category provider')
+      .populate({
+        path: 'service',
+        populate: {
+          path: 'provider',
+          select: 'name email'
+        }
+      });
+
+    // Add search functionality
+    if (search) {
+      const reviews = await query.exec();
+      const filteredReviews = reviews.filter(review => 
+        review.comment?.toLowerCase().includes(search.toLowerCase()) ||
+        review.user?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        review.service?.title?.toLowerCase().includes(search.toLowerCase())
+      );
+      
+      const startIndex = (Number(page) - 1) * Number(limit);
+      const endIndex = startIndex + Number(limit);
+      const paginatedReviews = filteredReviews.slice(startIndex, endIndex);
+
+      return res.json({
+        success: true,
+        reviews: paginatedReviews,
+        pagination: {
+          currentPage: Number(page),
+          totalPages: Math.ceil(filteredReviews.length / Number(limit)),
+          totalReviews: filteredReviews.length,
+          hasNextPage: endIndex < filteredReviews.length,
+          hasPreviousPage: page > 1
+        }
+      });
+    }
+
+    const reviews = await query
+      .sort(sort)
+      .limit(Number(limit))
+      .skip((Number(page) - 1) * Number(limit));
+
+    const total = await Review.countDocuments(filter);
+
+    res.json({
+      success: true,
+      reviews,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil(total / Number(limit)),
+        totalReviews: total,
+        hasNextPage: page < Math.ceil(total / Number(limit)),
+        hasPreviousPage: page > 1
+      }
+    });
+  } catch (error) {
+    console.error('Get all reviews error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // Get system reports
 exports.getReports = async (req, res) => {
   try {
@@ -454,16 +545,19 @@ exports.getReports = async (req, res) => {
       if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
     }
 
+    // Declare common variables at function scope
+    let totalUsers, totalServices, totalBookings, completedBookings;
+
     let report = {};
 
     switch (type) {
       case 'overview':
       case 'summary':
         // Summary report with key metrics
-        const totalUsers = await User.countDocuments();
-        const totalServices = await Service.countDocuments();
-        const totalBookings = await Booking.countDocuments();
-        const completedBookings = await Booking.countDocuments({ status: 'completed' });
+        totalUsers = await User.countDocuments();
+        totalServices = await Service.countDocuments();
+        totalBookings = await Booking.countDocuments();
+        completedBookings = await Booking.countDocuments({ status: 'completed' });
         
         const userGrowth = await User.aggregate([
           { $match: dateFilter },
@@ -493,19 +587,65 @@ exports.getReports = async (req, res) => {
           { $sort: { '_id.year': 1, '_id.month': 1 } }
         ]);
 
+        // Calculate growth percentages for current period vs previous period
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const sixtyDaysAgo = new Date();
+        sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+
+        const currentPeriodUsers = await User.countDocuments({ 
+          createdAt: { $gte: thirtyDaysAgo } 
+        });
+        const previousPeriodUsers = await User.countDocuments({ 
+          createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } 
+        });
+
+        const currentPeriodServices = await Service.countDocuments({ 
+          createdAt: { $gte: thirtyDaysAgo } 
+        });
+        const previousPeriodServices = await Service.countDocuments({ 
+          createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } 
+        });
+
+        const currentPeriodBookings = await Booking.countDocuments({ 
+          createdAt: { $gte: thirtyDaysAgo } 
+        });
+        const previousPeriodBookings = await Booking.countDocuments({ 
+          createdAt: { $gte: sixtyDaysAgo, $lt: thirtyDaysAgo } 
+        });
+
+        // Calculate percentage growth
+        const userGrowthPercent = previousPeriodUsers > 0 
+          ? ((currentPeriodUsers - previousPeriodUsers) / previousPeriodUsers * 100) 
+          : currentPeriodUsers > 0 ? 100 : 0;
+
+        const serviceGrowthPercent = previousPeriodServices > 0 
+          ? ((currentPeriodServices - previousPeriodServices) / previousPeriodServices * 100) 
+          : currentPeriodServices > 0 ? 100 : 0;
+
+        const bookingGrowthPercent = previousPeriodBookings > 0 
+          ? ((currentPeriodBookings - previousPeriodBookings) / previousPeriodBookings * 100) 
+          : currentPeriodBookings > 0 ? 100 : 0;
+
         report = {
           totalUsers,
           totalServices,
           totalBookings,
           completedBookings,
           completionRate: totalBookings > 0 ? (completedBookings / totalBookings * 100).toFixed(1) : 0,
-          userGrowth,
-          serviceGrowth
+          userGrowth: parseFloat(userGrowthPercent.toFixed(1)),
+          serviceGrowth: parseFloat(serviceGrowthPercent.toFixed(1)),
+          bookingGrowth: parseFloat(bookingGrowthPercent.toFixed(1)),
+          revenueGrowth: 0, // Placeholder for now
+          userGrowthData: userGrowth,
+          serviceGrowthData: serviceGrowth
         };
         break;
 
       case 'users':
         // User analytics
+        totalUsers = await User.countDocuments();
+        
         const usersByRole = await User.aggregate([
           {
             $group: {
@@ -522,16 +662,18 @@ exports.getReports = async (req, res) => {
         const newUsersThisPeriod = await User.countDocuments(dateFilter);
 
         report = {
-          totalUsers: await User.countDocuments(),
+          totalUsers,
           activeUsers,
           newUsers: newUsersThisPeriod,
           usersByRole,
-          retentionRate: totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(1) : 0
+          userRetention: totalUsers > 0 ? parseFloat(((activeUsers / totalUsers) * 100).toFixed(1)) : 0
         };
         break;
 
       case 'services':
         // Service analytics
+        totalServices = await Service.countDocuments();
+        
         const servicesByCategory = await Service.aggregate([
           {
             $group: {
@@ -547,7 +689,7 @@ exports.getReports = async (req, res) => {
         const newServicesThisPeriod = await Service.countDocuments(dateFilter);
 
         report = {
-          totalServices: await Service.countDocuments(),
+          totalServices,
           activeServices,
           newServices: newServicesThisPeriod,
           servicesByCategory,
@@ -557,6 +699,9 @@ exports.getReports = async (req, res) => {
 
       case 'bookings':
         // Booking analytics
+        totalBookings = await Booking.countDocuments();
+        completedBookings = await Booking.countDocuments({ status: 'completed' });
+        
         const bookingsByStatus = await Booking.aggregate([
           {
             $group: {
@@ -587,7 +732,7 @@ exports.getReports = async (req, res) => {
         ]);
 
         report = {
-          totalBookings: await Booking.countDocuments(),
+          totalBookings,
           newBookings: newBookingsThisPeriod,
           bookingsByStatus,
           averageBookingValue: avgBookingValue[0]?.avgValue || 0,
@@ -640,10 +785,72 @@ exports.getReports = async (req, res) => {
           }
         ]);
 
+        // Calculate monthly revenue growth
+        const currentMonthRevenue = await Booking.aggregate([
+          { 
+            $match: { 
+              status: 'completed',
+              createdAt: { 
+                $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
+                $lt: new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1)
+              }
+            } 
+          },
+          {
+            $lookup: {
+              from: 'services',
+              localField: 'service',
+              foreignField: '_id',
+              as: 'serviceData'
+            }
+          },
+          { $unwind: '$serviceData' },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$serviceData.price' }
+            }
+          }
+        ]);
+
+        const previousMonthRevenue = await Booking.aggregate([
+          { 
+            $match: { 
+              status: 'completed',
+              createdAt: { 
+                $gte: new Date(new Date().getFullYear(), new Date().getMonth() - 1, 1),
+                $lt: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+              }
+            } 
+          },
+          {
+            $lookup: {
+              from: 'services',
+              localField: 'service',
+              foreignField: '_id',
+              as: 'serviceData'
+            }
+          },
+          { $unwind: '$serviceData' },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: '$serviceData.price' }
+            }
+          }
+        ]);
+
+        const currentRevenue = currentMonthRevenue[0]?.total || 0;
+        const previousRevenue = previousMonthRevenue[0]?.total || 0;
+        const monthlyGrowth = previousRevenue > 0 
+          ? ((currentRevenue - previousRevenue) / previousRevenue * 100) 
+          : currentRevenue > 0 ? 100 : 0;
+
         report = {
           totalRevenue: totalRevenue[0]?.total || 0,
           revenueData,
-          avgRevenuePerBooking: completedBookings > 0 ? ((totalRevenue[0]?.total || 0) / completedBookings).toFixed(2) : 0
+          avgRevenuePerBooking: completedBookings > 0 ? ((totalRevenue[0]?.total || 0) / completedBookings).toFixed(2) : 0,
+          monthlyGrowth: parseFloat(monthlyGrowth.toFixed(1))
         };
         break;
 

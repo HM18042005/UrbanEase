@@ -1,20 +1,34 @@
 import api from './client';
 
+// Helper function to transform service data
+const transformService = (service) => {
+  if (!service) return service;
+  return {
+    ...service,
+    id: service._id || service.id
+  };
+};
+
+const transformServices = (services) => {
+  if (!Array.isArray(services)) return services;
+  return services.map(transformService);
+};
+
 // =================== SERVICES API ===================
 export const getServices = (params = {}) => 
-  api.get('/services', { params }).then(r => r.data);
+  api.get('/services', { params }).then(r => transformServices(r.data.services || []));
 
 export const getService = (id) => 
-  api.get(`/services/${id}`).then(r => r.data);
+  api.get(`/services/${id}`).then(r => transformService(r.data.service || r.data));
 
 export const searchServices = (query, filters = {}) => 
-  api.get('/services/search', { params: { q: query, ...filters } }).then(r => r.data);
+  api.get('/services/search', { params: { q: query, ...filters } }).then(r => transformServices(r.data.services || []));
 
 export const getFeaturedServices = () => 
-  api.get('/services/featured').then(r => r.data.services || []);
+  api.get('/services/featured').then(r => transformServices(r.data.services || []));
 
 export const getServicesByCategory = (category) => 
-  api.get(`/services/category/${category}`).then(r => r.data);
+  api.get('/services', { params: { category } }).then(r => transformServices(r.data.services || []));
 
 // =================== BOOKINGS API ===================
 export const createBooking = (bookingData) => 
@@ -27,10 +41,10 @@ export const getBooking = (id) =>
   api.get(`/bookings/${id}`).then(r => r.data);
 
 export const updateBooking = (id, data) => 
-  api.put(`/bookings/${id}`, data).then(r => r.data);
+  api.put(`/bookings/${id}/status`, data).then(r => r.data);
 
 export const cancelBooking = (id) => 
-  api.patch(`/bookings/${id}/cancel`).then(r => r.data);
+  api.put(`/bookings/${id}/cancel`).then(r => r.data);
 
 // =================== REVIEWS API ===================
 export const getReviews = (serviceId) => 
@@ -40,40 +54,40 @@ export const createReview = (reviewData) =>
   api.post('/reviews', reviewData).then(r => r.data);
 
 export const getUserReviews = () => 
-  api.get('/reviews/my-reviews').then(r => r.data);
+  api.get('/reviews/user').then(r => r.data);
 
 // =================== MESSAGES API ===================
 export const getConversations = () => 
   api.get('/messages/conversations').then(r => r.data);
 
-export const getMessages = (conversationId) => 
-  api.get(`/messages/${conversationId}`).then(r => r.data);
+export const getMessages = (userId) => 
+  api.get(`/messages/conversation/${userId}`).then(r => r.data);
 
 export const sendMessage = (messageData) => 
-  api.post('/messages', messageData).then(r => r.data);
+  api.post('/messages/send', messageData).then(r => r.data);
 
-export const markMessagesAsRead = (conversationId) => 
-  api.patch(`/messages/${conversationId}/read`).then(r => r.data);
+export const markMessagesAsRead = (conversationData) => 
+  api.put('/messages/mark-read', conversationData).then(r => r.data);
 
 // =================== USER DASHBOARD API ===================
 export const getUserDashboard = () => 
-  api.get('/user/dashboard').then(r => r.data);
+  api.get('/users/me/dashboard').then(r => r.data);
 
 export const getUserStats = () => 
-  api.get('/user/stats').then(r => r.data);
+  api.get('/users/me/stats').then(r => r.data);
 
 // =================== ADMIN API ===================
 export const getAdminDashboard = () => 
   api.get('/admin/dashboard').then(r => r.data);
 
 export const getAdminStats = () => 
-  api.get('/admin/stats').then(r => r.data);
+  api.get('/admin/dashboard').then(r => r.data);
 
 export const getAllUsers = (params = {}) => 
   api.get('/admin/users', { params }).then(r => r.data);
 
 export const updateUserStatus = (userId, status) => 
-  api.patch(`/admin/users/${userId}/status`, { status }).then(r => r.data);
+  api.put(`/admin/users/${userId}`, { status }).then(r => r.data);
 
 export const deleteUser = (userId) => 
   api.delete(`/admin/users/${userId}`).then(r => r.data);
@@ -87,56 +101,19 @@ export const getAllServices = (params = {}) =>
 export const getAllReviews = (params = {}) => 
   api.get('/admin/reviews', { params }).then(r => r.data);
 
-export const getAdminReports = (period = '30d') => 
-  api.get(`/admin/reports?period=${period}`).then(r => r.data);
+export const getAdminReports = (type = 'overview', params = {}) => 
+  api.get('/admin/reports', { params: { type, ...params } }).then(r => r.data);
 
 // Additional Admin API functions
-export const updateBookingStatus = (bookingId, status) =>
-  api.patch(`/admin/bookings/${bookingId}/status`, { status }).then(r => r.data);
-
-export const updateServiceStatus = (serviceId, status) =>
-  api.patch(`/admin/services/${serviceId}/status`, { status }).then(r => r.data);
-
 export const deleteService = (serviceId) =>
   api.delete(`/admin/services/${serviceId}`).then(r => r.data);
-
-export const updateReviewStatus = (reviewId, status) =>
-  api.patch(`/admin/reviews/${reviewId}/status`, { status }).then(r => r.data);
-
-export const deleteReview = (reviewId) =>
-  api.delete(`/admin/reviews/${reviewId}`).then(r => r.data);
-
-export const getSettings = () =>
-  api.get('/admin/settings').then(r => r.data);
-
-export const updateSettings = (category, settings) =>
-  api.patch(`/admin/settings/${category}`, settings).then(r => r.data);
-
-export const exportReports = (params) =>
-  api.get('/admin/reports/export', { params, responseType: 'blob' }).then(r => r.data);
-
-export const getDashboardStats = () =>
-  api.get('/admin/dashboard/stats').then(r => r.data);
-
-export const getRecentActivity = () =>
-  api.get('/admin/dashboard/activity').then(r => r.data);
-
-export const getRecentFeedback = () =>
-  api.get('/admin/dashboard/feedback').then(r => r.data);
-
-export const getPlatformMetrics = () =>
-  api.get('/admin/dashboard/metrics').then(r => r.data);
-
-export const getReports = (type, params = {}) =>
-  api.get('/admin/reports', { params: { type, ...params } }).then(r => r.data);
 
 // =================== ADMIN API OBJECT ===================
 export const adminAPI = {
   // Dashboard
-  getDashboardStats,
-  getRecentActivity,
-  getRecentFeedback,
-  getPlatformMetrics,
+  getAdminDashboard,
+  getAdminStats,
+  getDashboardStats: getAdminDashboard,
   
   // Users
   getAllUsers,
@@ -145,25 +122,17 @@ export const adminAPI = {
   
   // Services
   getAllServices,
-  updateServiceStatus,
   deleteService,
   
   // Bookings
   getAllBookings,
-  updateBookingStatus,
   
   // Reviews
   getAllReviews,
-  updateReviewStatus,
-  deleteReview,
   
   // Reports
-  getReports,
-  exportReports,
-  
-  // Settings
-  getSettings,
-  updateSettings
+  getAdminReports,
+  getReports: (type, params) => getAdminReports(type, params)
 };
 
 // =================== BOOKING API OBJECT ===================

@@ -1,15 +1,9 @@
-import axios from 'axios';
-
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+import api from './client';
 
 // Create payment order
 export const createPaymentOrder = async (bookingId) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/payments/create-order`,
-      { bookingId },
-      { withCredentials: true }
-    );
+    const response = await api.post('/payments/create-order', { bookingId });
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to create payment order' };
@@ -19,11 +13,7 @@ export const createPaymentOrder = async (bookingId) => {
 // Verify payment
 export const verifyPayment = async (paymentData) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/payments/verify`,
-      paymentData,
-      { withCredentials: true }
-    );
+    const response = await api.post('/payments/verify', paymentData);
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Payment verification failed' };
@@ -33,11 +23,7 @@ export const verifyPayment = async (paymentData) => {
 // Handle payment failure
 export const handlePaymentFailure = async (bookingId, error) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/payments/failure`,
-      { bookingId, error },
-      { withCredentials: true }
-    );
+    const response = await api.post('/payments/failure', { bookingId, error });
     return response.data;
   } catch (err) {
     throw err.response?.data || { message: 'Failed to handle payment failure' };
@@ -47,10 +33,7 @@ export const handlePaymentFailure = async (bookingId, error) => {
 // Get payment details
 export const getPaymentDetails = async (bookingId) => {
   try {
-    const response = await axios.get(
-      `${API_URL}/payments/${bookingId}`,
-      { withCredentials: true }
-    );
+    const response = await api.get(`/payments/${bookingId}`);
     return response.data;
   } catch (error) {
     throw error.response?.data || { message: 'Failed to get payment details' };

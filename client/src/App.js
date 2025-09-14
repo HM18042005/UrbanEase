@@ -11,6 +11,7 @@ import { SocketProvider } from './contexts/SocketContext';
 import HomePage from './pages/client/HomePage';
 import ServicesPage from './pages/client/ServicesPage';
 import ServiceDetail from './pages/client/ServiceDetail';
+import BookingForm from './pages/client/BookingForm';
 import BookingsPage from './pages/client/BookingsPage';
 import ProfilePage from './pages/client/ProfilePage';
 import LoginPage from './pages/client/LoginPage';
@@ -70,6 +71,14 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
                 <ServiceDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/book-service/:id" 
+            element={
+              <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
+                <BookingForm />
               </ProtectedRoute>
             } 
           />

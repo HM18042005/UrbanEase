@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Review = require('../models/review');
 const Service = require('../models/service');
 const Booking = require('../models/booking');
@@ -37,7 +38,7 @@ exports.getServiceReviews = async (req, res) => {
 
     // Calculate rating distribution
     const ratingStats = await Review.aggregate([
-      { $match: { service: mongoose.Types.ObjectId(serviceId) } },
+      { $match: { service: new mongoose.Types.ObjectId(serviceId) } },
       {
         $group: {
           _id: '$rating',

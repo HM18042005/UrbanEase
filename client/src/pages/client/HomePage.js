@@ -38,7 +38,17 @@ const HomePage = () => {
         ]);
         
         setFeaturedServices(servicesData || []);
-        setCategories(categoriesData || []);
+        
+        // Transform category strings into objects
+        const transformedCategories = (categoriesData || []).map((categoryName, index) => ({
+          id: index + 1,
+          name: categoryName,
+          description: `Professional ${categoryName.toLowerCase()} services`,
+          image: `/api/placeholder/300/200?text=${encodeURIComponent(categoryName)}`,
+          serviceCount: 0 // Will be updated when we have service counts
+        }));
+        
+        setCategories(transformedCategories);
         
       } catch (err) {
         console.error('Error fetching homepage data:', err);

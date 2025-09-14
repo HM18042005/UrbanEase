@@ -47,12 +47,12 @@ const AdminReportsPage = () => {
       ]);
 
       setReportData({
-        overview: overviewRes.data || {},
-        userMetrics: userRes.data || {},
-        serviceMetrics: serviceRes.data || {},
-        bookingMetrics: bookingRes.data || {},
-        revenueMetrics: revenueRes.data || {},
-        growthMetrics: overviewRes.data?.growth || {}
+        overview: overviewRes.report || {},
+        userMetrics: userRes.report || {},
+        serviceMetrics: serviceRes.report || {},
+        bookingMetrics: bookingRes.report || {},
+        revenueMetrics: revenueRes.report || {},
+        growthMetrics: overviewRes.report?.userGrowth || {}
       });
     } catch (err) {
       console.error('Error fetching report data:', err);
@@ -112,7 +112,32 @@ const AdminReportsPage = () => {
   };
 
   const formatPercentage = (value) => {
-    return `${(value || 0).toFixed(1)}%`;
+    // Handle different data types that might be passed
+    if (value === null || value === undefined) {
+      return '0.0%';
+    }
+    
+    // If it's an array (like growth data), return a placeholder
+    if (Array.isArray(value)) {
+      return 'N/A';
+    }
+    
+    // If it's a string, try to parse it as a number
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value);
+      if (isNaN(parsed)) {
+        return '0.0%';
+      }
+      return `${parsed.toFixed(1)}%`;
+    }
+    
+    // If it's a number, format it normally
+    if (typeof value === 'number') {
+      return `${value.toFixed(1)}%`;
+    }
+    
+    // Fallback for any other type
+    return '0.0%';
   };
 
   const getGrowthIcon = (growth) => {

@@ -16,6 +16,7 @@ import './ServiceCard.css';
 const ServiceCard = ({ service, size = 'medium' }) => {
   const {
     id,
+    _id,
     title,
     description,
     image,
@@ -25,9 +26,15 @@ const ServiceCard = ({ service, size = 'medium' }) => {
     startingPrice = 25
   } = service;
 
+  // Use _id as fallback if id is not available
+  const serviceId = id || _id;
+  
+  // Debug log
+  console.log('ServiceCard service:', { id, _id, serviceId, title });
+
   return (
     <div className={`service-card ${size}`}>
-      <Link to={`/service/${id}`} className="service-card-link">
+      <Link to={`/service/${serviceId}`} className="service-card-link">
         <div className="service-image">
           <img 
             src={image || `https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=300&h=200&fit=crop`} 

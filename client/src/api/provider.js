@@ -21,9 +21,9 @@ export const api = {
 
   // Schedule and booking endpoints
   getSchedule: (params) => apiClient.get('/provider/schedule', { params }),
-  updateAvailability: (availabilityData) => apiClient.put('/provider/availability', availabilityData),
+  updateAvailability: (availabilityData) => apiClient.post('/provider/schedule/availability', availabilityData),
   getBookings: (params) => apiClient.get('/provider/bookings', { params }),
-  updateBookingStatus: (id, status) => apiClient.patch(`/provider/bookings/${id}/status`, { status }),
+  updateBookingStatus: (id, status) => apiClient.patch(`/provider/bookings/${id}`, { status }),
 
   // Reports endpoints
   getReports: (period = '30d') => apiClient.get(`/provider/reports?period=${period}`),

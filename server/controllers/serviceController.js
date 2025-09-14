@@ -406,15 +406,24 @@ exports.getFeaturedServices = async (req, res) => {
   try {
     const { limit = 6 } = req.query;
 
-    // Get services that are featured (you can add a 'featured' field to the Service model later)
-    // For now, let's return highly rated services that are available
-    const services = await Service.find({ 
+    // First try to get services that are featured with high ratings
+    let services = await Service.find({ 
       isAvailable: true,
       averageRating: { $gte: 4.0 } // Services with rating 4.0 or higher
     })
       .populate('provider', 'name profilePicture')
       .sort({ averageRating: -1, totalBookings: -1 })
       .limit(Number(limit));
+
+    // If no highly rated services found, fallback to just available services
+    if (services.length === 0) {
+      services = await Service.find({ 
+        isAvailable: true
+      })
+        .populate('provider', 'name profilePicture')
+        .sort({ createdAt: -1 }) // Show newest services first
+        .limit(Number(limit));
+    }
 
     res.json({ success: true, services });
   } catch (error) {

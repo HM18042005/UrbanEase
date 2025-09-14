@@ -4,6 +4,7 @@ const {
   getAllUsers,
   getAllServices,
   getAllBookings,
+  getAllReviews,
   updateUser,
   deleteUser,
   deleteService,
@@ -32,5 +33,8 @@ router.delete('/services/:serviceId', deleteService);
 
 // Booking management
 router.get('/bookings', getAllBookings);
+
+// Review management  
+router.get('/reviews', getAllReviews);
 
 module.exports = router;

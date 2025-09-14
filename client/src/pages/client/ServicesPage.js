@@ -15,15 +15,19 @@ const ServicesPage = () => {
 
   const categories = [
     'All Services',
+    'Appliance Repair',
+    'Carpentry',
     'Cleaning',
-    'Handyman',
-    'Pet Care',
-    'Fitness',
-    'Moving',
+    'Electrical',
+    'Flooring', 
     'Gardening',
-    'Beauty',
-    'Tutoring',
-    'Photography'
+    'General Maintenance',
+    'HVAC',
+    'Home Security',
+    'Interior Design',
+    'Moving',
+    'Painting',
+    'Plumbing'
   ];
 
   // Get search and category from URL params

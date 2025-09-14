@@ -96,6 +96,16 @@ exports.createBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Service not found' });
     }
 
+    // Check if service has a provider
+    if (!service.provider) {
+      return res.status(400).json({ success: false, message: 'Service provider not found' });
+    }
+
+    // Check if user is authenticated
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: 'User not authenticated' });
+    }
+
     // Check if user is trying to book their own service
     if (service.provider._id.toString() === req.user._id.toString()) {
       return res.status(400).json({ 
