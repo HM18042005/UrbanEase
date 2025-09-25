@@ -1,6 +1,6 @@
 /**
  * Role-based Access Control Utilities
- * 
+ *
  * What: Utility functions for managing user roles and permissions
  * When: Used throughout the application to check user access rights
  * Why: Centralizes role-based logic and ensures consistent permission checking
@@ -9,24 +9,24 @@
 // Define role hierarchies and access levels
 export const ROLES = {
   CUSTOMER: 'customer',
-  PROVIDER: 'provider', 
-  ADMIN: 'admin'
+  PROVIDER: 'provider',
+  ADMIN: 'admin',
 };
 
 // Define which roles can access which areas
 export const ROLE_PERMISSIONS = {
   [ROLES.CUSTOMER]: {
     canAccess: ['customer', 'user'],
-    defaultRedirect: '/home'
+    defaultRedirect: '/home',
   },
   [ROLES.PROVIDER]: {
     canAccess: ['customer', 'user', 'provider'],
-    defaultRedirect: '/provider'
+    defaultRedirect: '/provider',
   },
   [ROLES.ADMIN]: {
     canAccess: ['customer', 'user', 'admin'],
-    defaultRedirect: '/admin'
-  }
+    defaultRedirect: '/admin',
+  },
 };
 
 /**
@@ -74,7 +74,7 @@ export const isRouteAccessible = (path, userRole) => {
 
   // User/Customer routes (accessible by all authenticated users)
   const userRoutes = ['/home', '/services', '/service', '/bookings', '/profile'];
-  const isUserRoute = userRoutes.some(route => path.startsWith(route));
+  const isUserRoute = userRoutes.some((route) => path.startsWith(route));
   if (isUserRoute) {
     return userRole && Object.values(ROLES).includes(userRole);
   }

@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Header from '../../components/Header';
+import { useCallback, useEffect, useState } from 'react';
+
 import { adminAPI } from '../../api/services';
+import Header from '../../components/Header';
 import './AdminDashboard.css';
 
 /**
  * AdminSettingsPage Component
- * 
+ *
  * What: System settings management interface for administrators
  * When: Admin needs to configure platform settings and preferences
  * Why: Provides centralized configuration management for the platform
- * 
+ *
  * Features:
  * - Platform general settings
  * - Email and notification settings
@@ -24,7 +25,7 @@ const AdminSettingsPage = () => {
       platformDescription: '',
       supportEmail: '',
       maintenanceMode: false,
-      registrationEnabled: true
+      registrationEnabled: true,
     },
     email: {
       smtpHost: '',
@@ -32,22 +33,22 @@ const AdminSettingsPage = () => {
       smtpUser: '',
       smtpPassword: '',
       fromEmail: '',
-      notificationsEnabled: true
+      notificationsEnabled: true,
     },
     payment: {
       commissionRate: 0,
       paymentMethods: [],
       currencyCode: 'USD',
-      minimumBookingAmount: 0
+      minimumBookingAmount: 0,
     },
     security: {
       passwordMinLength: 8,
       requireEmailVerification: true,
       maxLoginAttempts: 5,
-      sessionTimeout: 30
-    }
+      sessionTimeout: 30,
+    },
   });
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -58,7 +59,7 @@ const AdminSettingsPage = () => {
     try {
       setLoading(true);
       setError('');
-      
+
       // Fetch real settings data from API
       const settingsData = await adminAPI.getSettings();
       setSettings(settingsData || settings);
@@ -79,11 +80,11 @@ const AdminSettingsPage = () => {
       setSaving(true);
       setError('');
       setSuccess('');
-      
+
       // Save settings via API
       await adminAPI.updateSettings(settings);
       setSuccess('Settings saved successfully!');
-      
+
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -95,17 +96,20 @@ const AdminSettingsPage = () => {
   };
 
   const handleInputChange = (section, field, value) => {
-    setSettings(prev => ({
+    setSettings((prev) => ({
       ...prev,
       [section]: {
         ...prev[section],
-        [field]: value
-      }
+        [field]: value,
+      },
     }));
   };
 
   const handleArrayChange = (section, field, value) => {
-    const arrayValue = value.split(',').map(item => item.trim()).filter(item => item);
+    const arrayValue = value
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item) => item);
     handleInputChange(section, field, arrayValue);
   };
 
@@ -149,7 +153,9 @@ const AdminSettingsPage = () => {
               <div className="alert alert-error">
                 <span className="alert-icon">⚠️</span>
                 <span>{error}</span>
-                <button className="alert-close" onClick={() => setError('')}>×</button>
+                <button className="alert-close" onClick={() => setError('')}>
+                  ×
+                </button>
               </div>
             )}
 
@@ -157,7 +163,9 @@ const AdminSettingsPage = () => {
               <div className="alert alert-success">
                 <span className="alert-icon">✅</span>
                 <span>{success}</span>
-                <button className="alert-close" onClick={() => setSuccess('')}>×</button>
+                <button className="alert-close" onClick={() => setSuccess('')}>
+                  ×
+                </button>
               </div>
             )}
 
@@ -198,56 +206,65 @@ const AdminSettingsPage = () => {
                   <h3>General Settings</h3>
                   <p>Basic platform configuration</p>
                 </div>
-                
+
                 <div className="settings-form">
                   <div className="form-group">
-                    <label>Platform Name</label>
+                    <label htmlFor="platformName">Platform Name</label>
                     <input
+                      id="platformName"
                       type="text"
                       value={settings.general.platformName}
                       onChange={(e) => handleInputChange('general', 'platformName', e.target.value)}
                       placeholder="Enter platform name"
                     />
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>Platform Description</label>
+                    <label htmlFor="platformDescription">Platform Description</label>
                     <textarea
+                      id="platformDescription"
                       value={settings.general.platformDescription}
-                      onChange={(e) => handleInputChange('general', 'platformDescription', e.target.value)}
+                      onChange={(e) =>
+                        handleInputChange('general', 'platformDescription', e.target.value)
+                      }
                       placeholder="Enter platform description"
                       rows={3}
                     />
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>Support Email</label>
+                    <label htmlFor="supportEmail">Support Email</label>
                     <input
+                      id="supportEmail"
                       type="email"
                       value={settings.general.supportEmail}
                       onChange={(e) => handleInputChange('general', 'supportEmail', e.target.value)}
                       placeholder="support@urbanease.com"
                     />
                   </div>
-                  
+
                   <div className="form-group">
                     <label className="checkbox-label">
                       <input
                         type="checkbox"
                         checked={settings.general.maintenanceMode}
-                        onChange={(e) => handleInputChange('general', 'maintenanceMode', e.target.checked)}
+                        onChange={(e) =>
+                          handleInputChange('general', 'maintenanceMode', e.target.checked)
+                        }
                       />
                       <span>Maintenance Mode</span>
                     </label>
                     <small>Enable to temporarily disable the platform for maintenance</small>
                   </div>
-                  
+
                   <div className="form-group">
                     <label className="checkbox-label">
                       <input
                         type="checkbox"
                         checked={settings.general.registrationEnabled}
-                        onChange={(e) => handleInputChange('general', 'registrationEnabled', e.target.checked)}
+                        onChange={(e) =>
+                          handleInputChange('general', 'registrationEnabled', e.target.checked)
+                        }
                       />
                       <span>Registration Enabled</span>
                     </label>
@@ -264,64 +281,71 @@ const AdminSettingsPage = () => {
                   <h3>Email Settings</h3>
                   <p>SMTP and notification configuration</p>
                 </div>
-                
+
                 <div className="settings-form">
                   <div className="form-group">
-                    <label>SMTP Host</label>
+                    <label htmlFor="smtpHost">SMTP Host</label>
                     <input
+                      id="smtpHost"
                       type="text"
                       value={settings.email.smtpHost}
                       onChange={(e) => handleInputChange('email', 'smtpHost', e.target.value)}
                       placeholder="smtp.gmail.com"
                     />
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>SMTP Port</label>
+                    <label htmlFor="smtpPort">SMTP Port</label>
                     <input
+                      id="smtpPort"
                       type="number"
                       value={settings.email.smtpPort}
                       onChange={(e) => handleInputChange('email', 'smtpPort', e.target.value)}
                       placeholder="587"
                     />
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>SMTP Username</label>
+                    <label htmlFor="smtpUser">SMTP Username</label>
                     <input
+                      id="smtpUser"
                       type="text"
                       value={settings.email.smtpUser}
                       onChange={(e) => handleInputChange('email', 'smtpUser', e.target.value)}
                       placeholder="your-email@gmail.com"
                     />
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>SMTP Password</label>
+                    <label htmlFor="smtpPassword">SMTP Password</label>
                     <input
+                      id="smtpPassword"
                       type="password"
                       value={settings.email.smtpPassword}
                       onChange={(e) => handleInputChange('email', 'smtpPassword', e.target.value)}
                       placeholder="Enter SMTP password"
                     />
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>From Email Address</label>
+                    <label htmlFor="fromEmail">From Email Address</label>
                     <input
+                      id="fromEmail"
                       type="email"
                       value={settings.email.fromEmail}
                       onChange={(e) => handleInputChange('email', 'fromEmail', e.target.value)}
                       placeholder="noreply@urbanease.com"
                     />
                   </div>
-                  
+
                   <div className="form-group">
                     <label className="checkbox-label">
                       <input
                         type="checkbox"
                         checked={settings.email.notificationsEnabled}
-                        onChange={(e) => handleInputChange('email', 'notificationsEnabled', e.target.checked)}
+                        onChange={(e) =>
+                          handleInputChange('email', 'notificationsEnabled', e.target.checked)
+                        }
                       />
                       <span>Email Notifications Enabled</span>
                     </label>
@@ -338,36 +362,43 @@ const AdminSettingsPage = () => {
                   <h3>Payment Settings</h3>
                   <p>Payment processing and commission configuration</p>
                 </div>
-                
+
                 <div className="settings-form">
                   <div className="form-group">
-                    <label>Commission Rate (%)</label>
+                    <label htmlFor="commissionRate">Commission Rate (%)</label>
                     <input
+                      id="commissionRate"
                       type="number"
                       min="0"
                       max="100"
                       step="0.1"
                       value={settings.payment.commissionRate}
-                      onChange={(e) => handleInputChange('payment', 'commissionRate', parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        handleInputChange('payment', 'commissionRate', parseFloat(e.target.value))
+                      }
                       placeholder="10.0"
                     />
                     <small>Percentage commission taken from each completed booking</small>
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>Payment Methods</label>
+                    <label htmlFor="paymentMethods">Payment Methods</label>
                     <input
+                      id="paymentMethods"
                       type="text"
                       value={settings.payment.paymentMethods.join(', ')}
-                      onChange={(e) => handleArrayChange('payment', 'paymentMethods', e.target.value)}
+                      onChange={(e) =>
+                        handleArrayChange('payment', 'paymentMethods', e.target.value)
+                      }
                       placeholder="credit_card, paypal, stripe"
                     />
                     <small>Comma-separated list of enabled payment methods</small>
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>Currency Code</label>
+                    <label htmlFor="currencyCode">Currency Code</label>
                     <select
+                      id="currencyCode"
                       value={settings.payment.currencyCode}
                       onChange={(e) => handleInputChange('payment', 'currencyCode', e.target.value)}
                     >
@@ -377,15 +408,22 @@ const AdminSettingsPage = () => {
                       <option value="CAD">CAD - Canadian Dollar</option>
                     </select>
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>Minimum Booking Amount</label>
+                    <label htmlFor="minimumBookingAmount">Minimum Booking Amount</label>
                     <input
+                      id="minimumBookingAmount"
                       type="number"
                       min="0"
                       step="0.01"
                       value={settings.payment.minimumBookingAmount}
-                      onChange={(e) => handleInputChange('payment', 'minimumBookingAmount', parseFloat(e.target.value))}
+                      onChange={(e) =>
+                        handleInputChange(
+                          'payment',
+                          'minimumBookingAmount',
+                          parseFloat(e.target.value)
+                        )
+                      }
                       placeholder="25.00"
                     />
                     <small>Minimum amount required for a booking</small>
@@ -401,54 +439,69 @@ const AdminSettingsPage = () => {
                   <h3>Security Settings</h3>
                   <p>Authentication and security configuration</p>
                 </div>
-                
+
                 <div className="settings-form">
                   <div className="form-group">
-                    <label>Password Minimum Length</label>
+                    <label htmlFor="passwordMinLength">Password Minimum Length</label>
                     <input
+                      id="passwordMinLength"
                       type="number"
                       min="6"
                       max="32"
                       value={settings.security.passwordMinLength}
-                      onChange={(e) => handleInputChange('security', 'passwordMinLength', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleInputChange('security', 'passwordMinLength', parseInt(e.target.value))
+                      }
                       placeholder="8"
                     />
                     <small>Minimum number of characters required for passwords</small>
                   </div>
-                  
+
                   <div className="form-group">
                     <label className="checkbox-label">
                       <input
                         type="checkbox"
                         checked={settings.security.requireEmailVerification}
-                        onChange={(e) => handleInputChange('security', 'requireEmailVerification', e.target.checked)}
+                        onChange={(e) =>
+                          handleInputChange(
+                            'security',
+                            'requireEmailVerification',
+                            e.target.checked
+                          )
+                        }
                       />
                       <span>Require Email Verification</span>
                     </label>
                     <small>Require users to verify their email address during registration</small>
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>Maximum Login Attempts</label>
+                    <label htmlFor="maxLoginAttempts">Maximum Login Attempts</label>
                     <input
+                      id="maxLoginAttempts"
                       type="number"
                       min="3"
                       max="10"
                       value={settings.security.maxLoginAttempts}
-                      onChange={(e) => handleInputChange('security', 'maxLoginAttempts', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleInputChange('security', 'maxLoginAttempts', parseInt(e.target.value))
+                      }
                       placeholder="5"
                     />
                     <small>Number of failed login attempts before account lockout</small>
                   </div>
-                  
+
                   <div className="form-group">
-                    <label>Session Timeout (minutes)</label>
+                    <label htmlFor="sessionTimeout">Session Timeout (minutes)</label>
                     <input
+                      id="sessionTimeout"
                       type="number"
                       min="15"
                       max="480"
                       value={settings.security.sessionTimeout}
-                      onChange={(e) => handleInputChange('security', 'sessionTimeout', parseInt(e.target.value))}
+                      onChange={(e) =>
+                        handleInputChange('security', 'sessionTimeout', parseInt(e.target.value))
+                      }
                       placeholder="30"
                     />
                     <small>Automatic logout after period of inactivity</small>
@@ -460,28 +513,18 @@ const AdminSettingsPage = () => {
             {/* Save Button */}
             <div className="admin-card">
               <div className="settings-actions">
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="btn btn-primary"
-                >
+                <button onClick={handleSave} disabled={saving} className="btn btn-primary">
                   {saving ? (
                     <>
                       <span className="loading-spinner small"></span>
                       Saving...
                     </>
                   ) : (
-                    <>
-                      💾 Save Settings
-                    </>
+                    <>💾 Save Settings</>
                   )}
                 </button>
-                
-                <button
-                  onClick={fetchSettings}
-                  className="btn btn-secondary"
-                  disabled={saving}
-                >
+
+                <button onClick={fetchSettings} className="btn btn-secondary" disabled={saving}>
                   🔄 Reset to Saved
                 </button>
               </div>

@@ -1,6 +1,7 @@
 const express = require('express');
 const {
   getConversations,
+  getBookingBasedConversations,
   getConversationMessages,
   sendMessage,
   deleteMessage,
@@ -17,6 +18,7 @@ router.use(protect);
 
 // Message management
 router.get('/conversations', getConversations);
+router.get('/booking-conversations', getBookingBasedConversations);
 router.get('/conversation/:userId', getConversationMessages);
 router.get('/unread-count', getUnreadCount);
 router.get('/search', searchMessages);

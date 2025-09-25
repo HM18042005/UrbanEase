@@ -1,55 +1,85 @@
+/* Chat Window Container - keep it neutral so it blends inside parent cards */
 .chat-window {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background: transparent; /* parent provides background */
+  border-radius: 0; /* parent card handles radius */
+  box-shadow: none; /* avoid double shadows */
   overflow: hidden;
+  width: 100%;
+  box-sizing: border-box;
 }
 
+/* Header - light, subtle, matches MessagesPage cards */
 .chat-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #f9fafb;
+  color: #1f2937;
   padding: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .chat-header h3 {
   margin: 0;
   font-size: 18px;
   font-weight: 600;
+  color: #111827;
 }
 
-.online-status {
+/* Participant header details used by ChatWindow.js */
+.participant-info {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12px;
+  gap: 12px;
 }
 
-.status-dot {
-  width: 8px;
-  height: 8px;
+.avatar-container { position: relative; }
+.participant-avatar {
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background-color: #4ade80;
+  object-fit: cover;
+  border: 2px solid #e5e7eb;
 }
 
-.status-dot.offline {
-  background-color: #9ca3af;
-}
+.participant-details h3 { font-size: 16px; margin: 0; color: #111827; }
 
-.chat-messages {
-  flex: 1;
-  overflow-y: auto;
+/* Legacy status styles kept for potential reuse */
+.online-status { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.status-dot { width: 8px; height: 8px; border-radius: 50%; background-color: #10b981; }
+.status-dot.offline { background-color: #9ca3af; }
+
+/* Messages area - support both old and new class names */
+.chat-messages-container {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* critical for nested flex scroll */
+  background: white;
+  width: 100%;
+  box-sizing: border-box;
+  overflow: hidden; /* contain inner scroll */
+}
+.messages-list,
+.chat-messages { /* keep backwards compatibility */
+  flex: 1 1 auto;
+  overflow-y: auto; /* inner scroll */
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  background-color: #f8fafc;
+  background-color: #ffffff; /* blend perfectly with card */
+  width: 100%;
 }
+
+/* Scrollbar subtle styling */
+.messages-list { scrollbar-width: thin; scrollbar-gutter: stable; }
+.messages-list::-webkit-scrollbar { width: 6px; }
+.messages-list::-webkit-scrollbar-track { background: transparent; }
+.messages-list::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.15); border-radius: 8px; }
 
 .message {
   display: flex;
@@ -76,8 +106,8 @@
 }
 
 .message.own .message-bubble {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: #3b82f6; /* primary blue */
+  color: #ffffff;
   border-bottom-right-radius: 6px;
 }
 
@@ -88,7 +118,9 @@
   border-bottom-left-radius: 6px;
 }
 
-.message-info {
+/* Meta info under bubbles - align name/time/status */
+.message-meta,
+.message-info { /* keep legacy support */
   display: flex;
   align-items: center;
   gap: 8px;
@@ -97,6 +129,7 @@
   color: #6b7280;
 }
 
+.message.own .message-meta,
 .message.own .message-info {
   justify-content: flex-end;
 }
@@ -124,16 +157,19 @@
   color: #10b981;
 }
 
-.chat-input-container {
+/* Input area - support new class names */
+.message-input-container,
+.chat-input-container { /* legacy */
   padding: 16px;
   background: white;
   border-top: 1px solid #e5e7eb;
 }
 
-.chat-input {
+.message-form,
+.chat-input { /* legacy */
   display: flex;
   gap: 12px;
-  align-items: flex-end;
+  align-items: center;
 }
 
 .input-wrapper {
@@ -146,7 +182,7 @@
   min-height: 20px;
   max-height: 100px;
   padding: 10px 14px;
-  border: 2px solid #e5e7eb;
+  border: 1.5px solid #e5e7eb;
   border-radius: 20px;
   outline: none;
   font-family: inherit;
@@ -157,7 +193,8 @@
 }
 
 .message-input:focus {
-  border-color: #667eea;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .message-input::placeholder {
@@ -166,7 +203,7 @@
 
 .send-button {
   padding: 10px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #3b82f6;
   border: none;
   border-radius: 50%;
   color: white;
@@ -181,7 +218,7 @@
 
 .send-button:hover:not(:disabled) {
   transform: scale(1.05);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
 }
 
 .send-button:disabled {
@@ -310,36 +347,11 @@
 
 /* Dark mode support */
 @media (prefers-color-scheme: dark) {
-  .chat-window {
-    background: #1f2937;
-  }
-  
-  .chat-messages {
-    background-color: #111827;
-  }
-  
-  .message.other .message-bubble {
-    background: #374151;
-    color: #f3f4f6;
-    border-color: #4b5563;
-  }
-  
-  .chat-input-container {
-    background: #1f2937;
-    border-top-color: #374151;
-  }
-  
-  .message-input {
-    background: #374151;
-    color: #f3f4f6;
-    border-color: #4b5563;
-  }
-  
-  .message-input::placeholder {
-    color: #9ca3af;
-  }
-  
-  .message-input:focus {
-    border-color: #667eea;
-  }
+  /* Keep chat consistent with app's light theme regardless of OS dark mode */
+  .chat-window { background: transparent; }
+  .messages-list, .chat-messages { background-color: #f8fafc; }
+  .message.other .message-bubble { background: white; color: #374151; border-color: #e5e7eb; }
+  .message-input-container, .chat-input-container { background: white; border-top-color: #e5e7eb; }
+  .message-input { background: white; color: #111827; border-color: #e5e7eb; }
+  .message-input:focus { border-color: #3b82f6; }
 }

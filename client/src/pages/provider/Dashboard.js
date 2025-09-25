@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import Header from '../../components/Header';
+import { useEffect, useState } from 'react';
+
 import { api } from '../../api/provider';
+import Header from '../../components/Header';
 import './Dashboard.css';
 
 const Dashboard = () => {
@@ -9,10 +10,10 @@ const Dashboard = () => {
       totalServices: 0,
       activeBookings: 0,
       totalEarnings: 0,
-      avgRating: 0
+      avgRating: 0,
     },
     recentBookings: [],
-    recentReviews: []
+    recentReviews: [],
   });
   const [loading, setLoading] = useState(true);
 
@@ -32,10 +33,10 @@ const Dashboard = () => {
           totalServices: 0,
           activeBookings: 0,
           totalEarnings: 0,
-          avgRating: 0
+          avgRating: 0,
         },
         recentBookings: [],
-        recentReviews: []
+        recentReviews: [],
       });
     } finally {
       setLoading(false);
@@ -62,7 +63,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard-page">
       <Header />
-      
+
       <main className="dashboard-main">
         <div className="container">
           <div className="dashboard-header">
@@ -73,7 +74,9 @@ const Dashboard = () => {
           <div className="stats-grid">
             <div className="stat-card primary">
               <div className="stat-content">
-                <div className="stat-value">${dashboardData.stats.totalEarnings.toLocaleString()}</div>
+                <div className="stat-value">
+                  ${dashboardData.stats.totalEarnings.toLocaleString()}
+                </div>
                 <div className="stat-label">Total Earnings</div>
               </div>
               <div className="stat-icon">💰</div>
@@ -114,22 +117,24 @@ const Dashboard = () => {
                   <h3 className="card-title">Recent Reviews</h3>
                 </div>
                 <div className="reviews-list">
-                  {dashboardData.recentReviews.length > 0 ? dashboardData.recentReviews.map(review => (
-                    <div key={review.id || review._id} className="review-item">
-                      <div className="review-header">
-                        <div className="reviewer-info">
-                          <span className="reviewer-name">{review.customer?.name || 'Anonymous'}</span>
-                          <span className="review-date">
-                            {new Date(review.createdAt).toLocaleDateString()}
-                          </span>
+                  {dashboardData.recentReviews.length > 0 ? (
+                    dashboardData.recentReviews.map((review) => (
+                      <div key={review.id || review._id} className="review-item">
+                        <div className="review-header">
+                          <div className="reviewer-info">
+                            <span className="reviewer-name">
+                              {review.customer?.name || 'Anonymous'}
+                            </span>
+                            <span className="review-date">
+                              {new Date(review.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="review-rating">{'⭐'.repeat(review.rating)}</div>
                         </div>
-                        <div className="review-rating">
-                          {'⭐'.repeat(review.rating)}
-                        </div>
+                        <p className="review-comment">{review.comment}</p>
                       </div>
-                      <p className="review-comment">{review.comment}</p>
-                    </div>
-                  )) : (
+                    ))
+                  ) : (
                     <div className="no-reviews">
                       <p>No recent reviews</p>
                     </div>
@@ -154,11 +159,13 @@ const Dashboard = () => {
                     </div>
                   ) : (
                     <div className="bookings-list">
-                      {dashboardData.recentBookings.slice(0, 5).map(booking => (
+                      {dashboardData.recentBookings.slice(0, 5).map((booking) => (
                         <div key={booking._id} className="booking-item">
                           <div className="booking-header">
                             <span className="customer-name">{booking.customer?.name}</span>
-                            <span className={`booking-status ${booking.status}`}>{booking.status}</span>
+                            <span className={`booking-status ${booking.status}`}>
+                              {booking.status}
+                            </span>
                           </div>
                           <div className="booking-details">
                             <span className="service-name">{booking.service?.title}</span>
@@ -182,6 +189,10 @@ const Dashboard = () => {
                   <a href="/provider/services" className="action-btn">
                     <i className="fas fa-plus"></i>
                     Add Service
+                  </a>
+                  <a href="/provider/bookings" className="action-btn">
+                    <i className="fas fa-calendar-check"></i>
+                    View Bookings
                   </a>
                   <a href="/provider/schedule" className="action-btn">
                     <i className="fas fa-calendar"></i>

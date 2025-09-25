@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
+
+import { Link, useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../../context/AuthContext';
 import './Auth.css';
 
-export default function RegisterPage() {
+const RegisterPage = () => {
   const { register } = useAuth();
   const navigate = useNavigate();
   const [name, setName] = useState('');
@@ -39,42 +41,55 @@ export default function RegisterPage() {
             <p className="auth-subtitle">Join UrbanEase in a minute</p>
           </div>
 
-          <div className="auth-divider"><span>or</span></div>
+          <div className="auth-divider">
+            <span>or</span>
+          </div>
 
           {error && <div className="auth-error">{error}</div>}
 
           <form className="auth-form" onSubmit={onSubmit}>
-            <label className="auth-label">Full Name</label>
+            <label className="auth-label" htmlFor="fullName">
+              Full Name
+            </label>
             <input
               className="auth-input"
               placeholder="Enter your full name"
               value={name}
+              id="fullName"
               onChange={(e) => setName(e.target.value)}
               required
             />
 
-            <label className="auth-label">Email</label>
+            <label className="auth-label" htmlFor="email">
+              Email
+            </label>
             <input
               type="email"
               className="auth-input"
               placeholder="Enter your email"
               value={email}
+              id="email"
               onChange={(e) => setEmail(e.target.value)}
               required
             />
 
-            <label className="auth-label">Password</label>
+            <label className="auth-label" htmlFor="password">
+              Password
+            </label>
             <input
               type="password"
               className="auth-input"
               placeholder="Create a password"
               value={password}
+              id="password"
               onChange={(e) => setPassword(e.target.value)}
               required
             />
 
-            <label className="auth-label">Account Type</label>
-            <div className="role-selection">
+            <fieldset className="role-selection" aria-labelledby="accountTypeLegend">
+              <legend id="accountTypeLegend" className="auth-label">
+                Account Type
+              </legend>
               <div className="role-option">
                 <input
                   type="radio"
@@ -92,7 +107,7 @@ export default function RegisterPage() {
                   </div>
                 </label>
               </div>
-              
+
               <div className="role-option">
                 <input
                   type="radio"
@@ -110,7 +125,7 @@ export default function RegisterPage() {
                   </div>
                 </label>
               </div>
-            </div>
+            </fieldset>
 
             <button type="submit" className="auth-submit" disabled={loading}>
               {loading ? 'Creating…' : 'Create Account'}
@@ -119,7 +134,9 @@ export default function RegisterPage() {
 
           <div className="auth-footer">
             <span>Already have an account?</span>
-            <Link to="/login" className="auth-link">Sign in</Link>
+            <Link to="/login" className="auth-link">
+              Sign in
+            </Link>
           </div>
         </div>
 
@@ -129,4 +146,6 @@ export default function RegisterPage() {
       </div>
     </div>
   );
-}
+};
+
+export default RegisterPage;

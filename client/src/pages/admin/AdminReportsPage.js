@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import Header from '../../components/Header';
+import { useCallback, useEffect, useState } from 'react';
+
 import { adminAPI } from '../../api/services';
+import Header from '../../components/Header';
 import './AdminDashboard.css';
 
 /**
  * AdminReportsPage Component
- * 
+ *
  * What: Analytics and reporting interface for administrators
  * When: Admin needs to view platform performance metrics and analytics
  * Why: Provides comprehensive insights into user engagement, revenue, and growth
- * 
+ *
  * Features:
  * - Platform overview statistics
  * - User engagement metrics
@@ -24,7 +25,7 @@ const AdminReportsPage = () => {
     serviceMetrics: {},
     bookingMetrics: {},
     revenueMetrics: {},
-    growthMetrics: {}
+    growthMetrics: {},
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,13 +38,13 @@ const AdminReportsPage = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const [overviewRes, userRes, serviceRes, bookingRes, revenueRes] = await Promise.all([
         adminAPI.getReports('overview', { dateRange }),
         adminAPI.getReports('users', { dateRange }),
         adminAPI.getReports('services', { dateRange }),
         adminAPI.getReports('bookings', { dateRange }),
-        adminAPI.getReports('revenue', { dateRange })
+        adminAPI.getReports('revenue', { dateRange }),
       ]);
 
       setReportData({
@@ -52,7 +53,7 @@ const AdminReportsPage = () => {
         serviceMetrics: serviceRes.report || {},
         bookingMetrics: bookingRes.report || {},
         revenueMetrics: revenueRes.report || {},
-        growthMetrics: overviewRes.report?.userGrowth || {}
+        growthMetrics: overviewRes.report?.userGrowth || {},
       });
     } catch (err) {
       console.error('Error fetching report data:', err);
@@ -65,25 +66,25 @@ const AdminReportsPage = () => {
   const handleExport = async (format) => {
     try {
       setExportLoading(true);
-      
+
       // Get report data from API for export
       const exportData = await adminAPI.exportReport({
         reportType: selectedReportType,
         dateRange: dateRange,
-        format: format
+        format: format,
       });
-      
+
       const dataToExport = {
         reportType: selectedReportType,
         dateRange: dateRange,
         generatedAt: new Date().toISOString(),
-        data: exportData
+        data: exportData,
       };
-      
+
       const blob = new Blob([JSON.stringify(dataToExport, null, 2)], {
-        type: 'application/json'
+        type: 'application/json',
       });
-      
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -107,7 +108,7 @@ const AdminReportsPage = () => {
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(amount || 0);
   };
 
@@ -116,12 +117,12 @@ const AdminReportsPage = () => {
     if (value === null || value === undefined) {
       return '0.0%';
     }
-    
+
     // If it's an array (like growth data), return a placeholder
     if (Array.isArray(value)) {
       return 'N/A';
     }
-    
+
     // If it's a string, try to parse it as a number
     if (typeof value === 'string') {
       const parsed = parseFloat(value);
@@ -130,12 +131,12 @@ const AdminReportsPage = () => {
       }
       return `${parsed.toFixed(1)}%`;
     }
-    
+
     // If it's a number, format it normally
     if (typeof value === 'number') {
       return `${value.toFixed(1)}%`;
     }
-    
+
     // Fallback for any other type
     return '0.0%';
   };
@@ -192,7 +193,9 @@ const AdminReportsPage = () => {
               <div className="alert alert-error">
                 <span className="alert-icon">⚠️</span>
                 <span>{error}</span>
-                <button className="alert-close" onClick={() => setError('')}>×</button>
+                <button className="alert-close" onClick={() => setError('')}>
+                  ×
+                </button>
               </div>
             )}
 
@@ -211,7 +214,7 @@ const AdminReportsPage = () => {
                     <option value="bookingMetrics">Booking Analytics</option>
                     <option value="revenueMetrics">Revenue Analytics</option>
                   </select>
-                  
+
                   <select
                     value={dateRange}
                     onChange={(e) => setDateRange(e.target.value)}
@@ -224,8 +227,8 @@ const AdminReportsPage = () => {
                     <option value="1year">Last Year</option>
                     <option value="all">All Time</option>
                   </select>
-                  
-                  <button 
+
+                  <button
                     onClick={fetchReportData}
                     disabled={loading}
                     className="refresh-btn"
@@ -233,8 +236,8 @@ const AdminReportsPage = () => {
                   >
                     🔄
                   </button>
-                  
-                  <button 
+
+                  <button
                     onClick={() => handleExport('json')}
                     disabled={exportLoading}
                     className="btn btn-secondary"
@@ -253,41 +256,59 @@ const AdminReportsPage = () => {
                     <div className="stat-content">
                       <div className="stat-value">{reportData.overview.totalUsers}</div>
                       <div className="stat-label">Total Users</div>
-                      <div className="stat-growth" style={{ color: getGrowthColor(reportData.overview.userGrowth) }}>
-                        {getGrowthIcon(reportData.overview.userGrowth)} {formatPercentage(reportData.overview.userGrowth)}
+                      <div
+                        className="stat-growth"
+                        style={{ color: getGrowthColor(reportData.overview.userGrowth) }}
+                      >
+                        {getGrowthIcon(reportData.overview.userGrowth)}{' '}
+                        {formatPercentage(reportData.overview.userGrowth)}
                       </div>
                     </div>
                     <div className="stat-icon">👥</div>
                   </div>
-                  
+
                   <div className="stat-card">
                     <div className="stat-content">
                       <div className="stat-value">{reportData.overview.totalServices}</div>
                       <div className="stat-label">Total Services</div>
-                      <div className="stat-growth" style={{ color: getGrowthColor(reportData.overview.serviceGrowth) }}>
-                        {getGrowthIcon(reportData.overview.serviceGrowth)} {formatPercentage(reportData.overview.serviceGrowth)}
+                      <div
+                        className="stat-growth"
+                        style={{ color: getGrowthColor(reportData.overview.serviceGrowth) }}
+                      >
+                        {getGrowthIcon(reportData.overview.serviceGrowth)}{' '}
+                        {formatPercentage(reportData.overview.serviceGrowth)}
                       </div>
                     </div>
                     <div className="stat-icon">🔧</div>
                   </div>
-                  
+
                   <div className="stat-card">
                     <div className="stat-content">
                       <div className="stat-value">{reportData.overview.totalBookings}</div>
                       <div className="stat-label">Total Bookings</div>
-                      <div className="stat-growth" style={{ color: getGrowthColor(reportData.overview.bookingGrowth) }}>
-                        {getGrowthIcon(reportData.overview.bookingGrowth)} {formatPercentage(reportData.overview.bookingGrowth)}
+                      <div
+                        className="stat-growth"
+                        style={{ color: getGrowthColor(reportData.overview.bookingGrowth) }}
+                      >
+                        {getGrowthIcon(reportData.overview.bookingGrowth)}{' '}
+                        {formatPercentage(reportData.overview.bookingGrowth)}
                       </div>
                     </div>
                     <div className="stat-icon">📋</div>
                   </div>
-                  
+
                   <div className="stat-card">
                     <div className="stat-content">
-                      <div className="stat-value">{formatCurrency(reportData.overview.totalRevenue)}</div>
+                      <div className="stat-value">
+                        {formatCurrency(reportData.overview.totalRevenue)}
+                      </div>
                       <div className="stat-label">Total Revenue</div>
-                      <div className="stat-growth" style={{ color: getGrowthColor(reportData.overview.revenueGrowth) }}>
-                        {getGrowthIcon(reportData.overview.revenueGrowth)} {formatPercentage(reportData.overview.revenueGrowth)}
+                      <div
+                        className="stat-growth"
+                        style={{ color: getGrowthColor(reportData.overview.revenueGrowth) }}
+                      >
+                        {getGrowthIcon(reportData.overview.revenueGrowth)}{' '}
+                        {formatPercentage(reportData.overview.revenueGrowth)}
                       </div>
                     </div>
                     <div className="stat-icon">💰</div>
@@ -317,7 +338,9 @@ const AdminReportsPage = () => {
                   </div>
                   <div className="report-metric">
                     <div className="metric-label">User Retention</div>
-                    <div className="metric-value">{formatPercentage(reportData.userMetrics.userRetention)}</div>
+                    <div className="metric-value">
+                      {formatPercentage(reportData.userMetrics.userRetention)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -347,11 +370,11 @@ const AdminReportsPage = () => {
                           <td>{formatCurrency(category.revenue)}</td>
                           <td>
                             <div className="performance-bar">
-                              <div 
+                              <div
                                 className="performance-fill"
-                                style={{ 
+                                style={{
                                   width: `${(category.count / 234) * 100}%`,
-                                  backgroundColor: '#3b82f6'
+                                  backgroundColor: '#3b82f6',
                                 }}
                               ></div>
                             </div>
@@ -381,11 +404,15 @@ const AdminReportsPage = () => {
                   </div>
                   <div className="report-metric">
                     <div className="metric-label">Completed</div>
-                    <div className="metric-value">{reportData.bookingMetrics.completedBookings}</div>
+                    <div className="metric-value">
+                      {reportData.bookingMetrics.completedBookings}
+                    </div>
                   </div>
                   <div className="report-metric">
                     <div className="metric-label">Avg. Booking Value</div>
-                    <div className="metric-value">{formatCurrency(reportData.bookingMetrics.avgBookingValue)}</div>
+                    <div className="metric-value">
+                      {formatCurrency(reportData.bookingMetrics.avgBookingValue)}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -401,16 +428,21 @@ const AdminReportsPage = () => {
                   <div className="revenue-stats">
                     <div className="revenue-stat">
                       <div className="stat-label">Total Revenue</div>
-                      <div className="stat-value">{formatCurrency(reportData.revenueMetrics.totalRevenue)}</div>
+                      <div className="stat-value">
+                        {formatCurrency(reportData.revenueMetrics.totalRevenue)}
+                      </div>
                     </div>
                     <div className="revenue-stat">
                       <div className="stat-label">Monthly Growth</div>
-                      <div className="stat-value" style={{ color: getGrowthColor(reportData.revenueMetrics.monthlyGrowth) }}>
+                      <div
+                        className="stat-value"
+                        style={{ color: getGrowthColor(reportData.revenueMetrics.monthlyGrowth) }}
+                      >
                         {formatPercentage(reportData.revenueMetrics.monthlyGrowth)}
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="top-earners">
                     <h4>Top Earning Providers</h4>
                     <div className="earners-list">

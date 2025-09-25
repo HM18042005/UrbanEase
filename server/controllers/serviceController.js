@@ -5,22 +5,56 @@ const Review = require('../models/review');
 // Get all services with optional filtering
 exports.getServices = async (req, res) => {
   try {
-    const { category, provider, search, minPrice, maxPrice, sortBy, limit = 10, page = 1 } = req.query;
+    const { 
+      category, 
+      provider, 
+      search, 
+      minPrice, 
+      maxPrice, 
+      sortBy, 
+      limit = 10, 
+      page = 1,
+      location,
+      radius = 50, // km
+      minRating,
+      availability
+    } = req.query;
     
     // Build filter object
     const filter = {};
     if (category) filter.category = category;
     if (provider) filter.provider = provider;
+    
+    // Price range filtering
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = Number(minPrice);
       if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
+    
+    // Text search
     if (search) {
       filter.$or = [
         { title: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { description: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } }
       ];
+    }
+
+    // Location-based filtering (if location coordinates provided)
+    if (location) {
+      const [lat, lng] = location.split(',').map(Number);
+      if (lat && lng) {
+        filter.location = {
+          $near: {
+            $geometry: {
+              type: 'Point',
+              coordinates: [lng, lat]
+            },
+            $maxDistance: Number(radius) * 1000 // Convert km to meters
+          }
+        };
+      }
     }
 
     // Build sort object
@@ -32,23 +66,112 @@ exports.getServices = async (req, res) => {
       case 'price-desc':
         sort.price = -1;
         break;
+      case 'rating':
+        sort.averageRating = -1;
+        break;
+      case 'popular':
+        sort.totalBookings = -1;
+        break;
       case 'newest':
         sort.createdAt = -1;
         break;
       case 'oldest':
         sort.createdAt = 1;
         break;
+      case 'distance':
+        // Distance sorting is handled by $near in filter
+        break;
       default:
         sort.createdAt = -1;
     }
 
-    const services = await Service.find(filter)
-      .populate('provider', 'name email phone')
-      .sort(sort)
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
+    // Build aggregation pipeline for advanced filtering
+    const pipeline = [
+      { $match: filter },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'provider',
+          foreignField: '_id',
+          as: 'providerData'
+        }
+      },
+      {
+        $lookup: {
+          from: 'reviews',
+          localField: '_id',
+          foreignField: 'service',
+          as: 'reviewsData'
+        }
+      },
+      {
+        $lookup: {
+          from: 'bookings',
+          localField: '_id',
+          foreignField: 'service',
+          as: 'bookingsData'
+        }
+      },
+      {
+        $addFields: {
+          averageRating: {
+            $cond: {
+              if: { $gt: [{ $size: '$reviewsData' }, 0] },
+              then: { $avg: '$reviewsData.rating' },
+              else: 0
+            }
+          },
+          totalReviews: { $size: '$reviewsData' },
+          totalBookings: { $size: '$bookingsData' },
+          provider: { $arrayElemAt: ['$providerData', 0] }
+        }
+      },
+      {
+        $project: {
+          reviewsData: 0,
+          bookingsData: 0,
+          providerData: 0,
+          'provider.password': 0
+        }
+      }
+    ];
 
-    const total = await Service.countDocuments(filter);
+    // Add rating filter if specified
+    if (minRating) {
+      pipeline.push({
+        $match: {
+          averageRating: { $gte: Number(minRating) }
+        }
+      });
+    }
+
+    // Add availability filter if specified
+    if (availability === 'available') {
+      pipeline.push({
+        $match: {
+          isActive: true
+        }
+      });
+    }
+
+    // Add sorting
+    if (Object.keys(sort).length > 0) {
+      pipeline.push({ $sort: sort });
+    }
+
+    // Add pagination
+    pipeline.push(
+      { $skip: (Number(page) - 1) * Number(limit) },
+      { $limit: Number(limit) }
+    );
+
+    const services = await Service.aggregate(pipeline);
+    
+    // Get total count for pagination
+    const countPipeline = [...pipeline.slice(0, -2)]; // Remove skip and limit
+    countPipeline.push({ $count: 'total' });
+    const countResult = await Service.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
 
     res.json({
       success: true,
@@ -59,6 +182,13 @@ exports.getServices = async (req, res) => {
         totalServices: total,
         hasNextPage: page < Math.ceil(total / Number(limit)),
         hasPreviousPage: page > 1
+      },
+      filters: {
+        category,
+        priceRange: { min: minPrice, max: maxPrice },
+        location: location ? { lat: location.split(',')[0], lng: location.split(',')[1], radius } : null,
+        minRating,
+        sortBy
       }
     });
   } catch (error) {
@@ -237,6 +367,213 @@ exports.getCategories = async (req, res) => {
     });
   } catch (error) {
     console.error('Get categories error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Advanced search with filters and facets
+exports.advancedSearch = async (req, res) => {
+  try {
+    const {
+      query,
+      categories,
+      minPrice,
+      maxPrice,
+      minRating,
+      location,
+      radius = 50,
+      sortBy = 'relevance',
+      page = 1,
+      limit = 20
+    } = req.body;
+
+    const pipeline = [];
+
+    // Initial match stage
+    const matchStage = {};
+    
+    // Text search
+    if (query) {
+      matchStage.$text = { $search: query };
+    }
+
+    // Category filter
+    if (categories && categories.length > 0) {
+      matchStage.category = { $in: categories };
+    }
+
+    // Price range
+    if (minPrice || maxPrice) {
+      matchStage.price = {};
+      if (minPrice) matchStage.price.$gte = Number(minPrice);
+      if (maxPrice) matchStage.price.$lte = Number(maxPrice);
+    }
+
+    pipeline.push({ $match: matchStage });
+
+    // Location-based search
+    if (location) {
+      const [lat, lng] = location.split(',').map(Number);
+      if (lat && lng) {
+        pipeline.unshift({
+          $geoNear: {
+            near: { type: 'Point', coordinates: [lng, lat] },
+            distanceField: 'distance',
+            maxDistance: Number(radius) * 1000,
+            spherical: true
+          }
+        });
+      }
+    }
+
+    // Lookup reviews and calculate ratings
+    pipeline.push(
+      {
+        $lookup: {
+          from: 'reviews',
+          localField: '_id',
+          foreignField: 'service',
+          as: 'reviews'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'provider',
+          foreignField: '_id',
+          as: 'providerData'
+        }
+      },
+      {
+        $addFields: {
+          averageRating: {
+            $cond: {
+              if: { $gt: [{ $size: '$reviews' }, 0] },
+              then: { $avg: '$reviews.rating' },
+              else: 0
+            }
+          },
+          totalReviews: { $size: '$reviews' },
+          provider: { $arrayElemAt: ['$providerData', 0] },
+          relevanceScore: query ? { $meta: 'textScore' } : 1
+        }
+      }
+    );
+
+    // Rating filter
+    if (minRating) {
+      pipeline.push({
+        $match: {
+          averageRating: { $gte: Number(minRating) }
+        }
+      });
+    }
+
+    // Sorting
+    const sortStage = {};
+    switch (sortBy) {
+      case 'price-asc':
+        sortStage.price = 1;
+        break;
+      case 'price-desc':
+        sortStage.price = -1;
+        break;
+      case 'rating':
+        sortStage.averageRating = -1;
+        break;
+      case 'distance':
+        if (location) sortStage.distance = 1;
+        break;
+      case 'newest':
+        sortStage.createdAt = -1;
+        break;
+      case 'relevance':
+      default:
+        if (query) {
+          sortStage.relevanceScore = { $meta: 'textScore' };
+        } else {
+          sortStage.createdAt = -1;
+        }
+    }
+
+    pipeline.push({ $sort: sortStage });
+
+    // Facets for filters
+    pipeline.push({
+      $facet: {
+        services: [
+          { $skip: (Number(page) - 1) * Number(limit) },
+          { $limit: Number(limit) },
+          {
+            $project: {
+              reviews: 0,
+              providerData: 0,
+              'provider.password': 0
+            }
+          }
+        ],
+        totalCount: [{ $count: 'count' }],
+        priceRange: [
+          {
+            $group: {
+              _id: null,
+              minPrice: { $min: '$price' },
+              maxPrice: { $max: '$price' }
+            }
+          }
+        ],
+        categoryFacets: [
+          {
+            $group: {
+              _id: '$category',
+              count: { $sum: 1 }
+            }
+          },
+          { $sort: { count: -1 } }
+        ],
+        ratingFacets: [
+          {
+            $bucket: {
+              groupBy: '$averageRating',
+              boundaries: [0, 1, 2, 3, 4, 5],
+              default: 0,
+              output: { count: { $sum: 1 } }
+            }
+          }
+        ]
+      }
+    });
+
+    const result = await Service.aggregate(pipeline);
+    const data = result[0];
+
+    res.json({
+      success: true,
+      services: data.services,
+      totalCount: data.totalCount[0]?.count || 0,
+      pagination: {
+        currentPage: Number(page),
+        totalPages: Math.ceil((data.totalCount[0]?.count || 0) / Number(limit)),
+        hasNextPage: page < Math.ceil((data.totalCount[0]?.count || 0) / Number(limit)),
+        hasPreviousPage: page > 1
+      },
+      facets: {
+        priceRange: data.priceRange[0] || { minPrice: 0, maxPrice: 0 },
+        categories: data.categoryFacets,
+        ratings: data.ratingFacets
+      },
+      searchQuery: {
+        query,
+        categories,
+        priceRange: { min: minPrice, max: maxPrice },
+        minRating,
+        location,
+        radius,
+        sortBy
+      }
+    });
+  } catch (error) {
+    console.error('Advanced search error:', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

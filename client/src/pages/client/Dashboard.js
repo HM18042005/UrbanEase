@@ -1,17 +1,19 @@
-import React, { useState, useEffect } from 'react';
-import Header from '../../components/Header';
+import { useEffect, useState } from 'react';
+
 import { Link } from 'react-router-dom';
-import './Dashboard.css';
+
 import { bookingAPI, serviceAPI } from '../../api/services';
+import Header from '../../components/Header';
+import './Dashboard.css';
 import { useAuth } from '../../context/AuthContext';
 
 /**
  * Dashboard Component (Client Dashboard)
- * 
+ *
  * What: Client's main dashboard showing bookings, favorite services, and account overview
  * When: Accessed by clients to manage their bookings and account
  * Why: Provides overview of client's services and allows management of bookings
- * 
+ *
  * Features:
  * - Recent bookings overview
  * - Upcoming appointments
@@ -24,7 +26,7 @@ const Dashboard = () => {
     totalBookings: 0,
     upcomingBookings: 0,
     completedBookings: 0,
-    pendingBookings: 0
+    pendingBookings: 0,
   });
   const [recentBookings, setRecentBookings] = useState([]);
   const [favoriteServices, setFavoriteServices] = useState([]);
@@ -41,25 +43,21 @@ const Dashboard = () => {
       setError(null);
 
       // Fetch client's bookings
-      const bookingsResponse = await bookingAPI.getMyBookings();
-      const bookings = bookingsResponse.data || [];
-      
+      const bookingsResponse = await bookingAPI.getBookings();
+      const bookings = bookingsResponse.bookings || bookingsResponse.data || [];
+
       // Calculate statistics
       const stats = {
         totalBookings: bookings.length,
-        upcomingBookings: bookings.filter(b => 
+        upcomingBookings: bookings.filter((b) =>
           ['pending', 'confirmed'].includes(b.status?.toLowerCase())
         ).length,
-        completedBookings: bookings.filter(b => 
-          b.status?.toLowerCase() === 'completed'
-        ).length,
-        pendingBookings: bookings.filter(b => 
-          b.status?.toLowerCase() === 'pending'
-        ).length
+        completedBookings: bookings.filter((b) => b.status?.toLowerCase() === 'completed').length,
+        pendingBookings: bookings.filter((b) => b.status?.toLowerCase() === 'pending').length,
       };
-      
+
       setDashboardData(stats);
-      
+
       // Get recent bookings (last 5)
       const recent = bookings
         .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
@@ -68,13 +66,12 @@ const Dashboard = () => {
 
       // Fetch favorite services (or popular services if no favorites API)
       try {
-        const featuredResponse = await serviceAPI.getFeaturedServices();
-        setFavoriteServices(featuredResponse.data?.slice(0, 6) || []);
+        const featuredServices = await serviceAPI.getFeaturedServices();
+        setFavoriteServices(featuredServices?.slice(0, 6) || []);
       } catch (serviceError) {
         console.error('Error fetching favorite services:', serviceError);
         setFavoriteServices([]);
       }
-
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError(err.response?.data?.message || 'Failed to load dashboard data');
@@ -85,11 +82,16 @@ const Dashboard = () => {
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'confirmed': return '#28a745';
-      case 'pending': return '#ffc107';
-      case 'completed': return '#007bff';
-      case 'cancelled': return '#dc3545';
-      default: return '#6c757d';
+      case 'confirmed':
+        return '#28a745';
+      case 'pending':
+        return '#ffc107';
+      case 'completed':
+        return '#007bff';
+      case 'cancelled':
+        return '#dc3545';
+      default:
+        return '#6c757d';
     }
   };
 
@@ -99,7 +101,7 @@ const Dashboard = () => {
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
@@ -121,7 +123,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard-page">
       <Header />
-      
+
       <main className="dashboard-main">
         <div className="container">
           <div className="dashboard-header">
@@ -134,10 +136,7 @@ const Dashboard = () => {
               <div className="error-message">
                 <h3>Failed to Load Dashboard</h3>
                 <p>{error}</p>
-                <button 
-                  className="retry-button"
-                  onClick={fetchDashboardData}
-                >
+                <button className="retry-button" onClick={fetchDashboardData}>
                   Try Again
                 </button>
               </div>
@@ -187,7 +186,9 @@ const Dashboard = () => {
               <div className="dashboard-card">
                 <div className="card-header">
                   <h3 className="card-title">Recent Bookings</h3>
-                  <Link to="/bookings" className="view-all-link">View All</Link>
+                  <Link to="/bookings" className="view-all-link">
+                    View All
+                  </Link>
                 </div>
                 <div className="bookings-list">
                   {recentBookings.length === 0 ? (
@@ -200,7 +201,7 @@ const Dashboard = () => {
                       </Link>
                     </div>
                   ) : (
-                    recentBookings.map(booking => (
+                    recentBookings.map((booking) => (
                       <div key={booking._id || booking.id} className="booking-item">
                         <div className="booking-info">
                           <h4 className="booking-service">
@@ -214,7 +215,7 @@ const Dashboard = () => {
                           </p>
                         </div>
                         <div className="booking-status">
-                          <span 
+                          <span
                             className="status-badge"
                             style={{ backgroundColor: getStatusColor(booking.status) }}
                           >
@@ -259,7 +260,9 @@ const Dashboard = () => {
               <div className="dashboard-card">
                 <div className="card-header">
                   <h3 className="card-title">Popular Services</h3>
-                  <Link to="/services" className="view-all-link">View All</Link>
+                  <Link to="/services" className="view-all-link">
+                    View All
+                  </Link>
                 </div>
                 <div className="services-grid">
                   {favoriteServices.length === 0 ? (
@@ -267,14 +270,18 @@ const Dashboard = () => {
                       <p>No services available at the moment.</p>
                     </div>
                   ) : (
-                    favoriteServices.map(service => (
+                    favoriteServices.map((service) => (
                       <div key={service._id || service.id} className="service-item">
                         <div className="service-image">
-                          <img 
-                            src={service.image || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop'} 
+                          <img
+                            src={
+                              service.image ||
+                              'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop'
+                            }
                             alt={service.name || service.title || 'Service'}
                             onError={(e) => {
-                              e.target.src = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop';
+                              e.target.src =
+                                'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=300&fit=crop';
                             }}
                           />
                         </div>
@@ -282,10 +289,8 @@ const Dashboard = () => {
                           <h4 className="service-name">
                             {service.name || service.title || 'Service'}
                           </h4>
-                          <p className="service-price">
-                            ${service.price || 0}
-                          </p>
-                          <Link 
+                          <p className="service-price">₹{Number(service.price || 0).toLocaleString('en-IN')}</p>
+                          <Link
                             to={`/service/${service._id || service.id}`}
                             className="service-link"
                           >
@@ -308,21 +313,29 @@ const Dashboard = () => {
                     <div className="tip-icon">💡</div>
                     <div className="tip-text">
                       <h4>Book in advance</h4>
-                      <p>Schedule your services ahead of time to ensure availability with your preferred providers.</p>
+                      <p>
+                        Schedule your services ahead of time to ensure availability with your
+                        preferred providers.
+                      </p>
                     </div>
                   </div>
                   <div className="tip-item">
                     <div className="tip-icon">⭐</div>
                     <div className="tip-text">
                       <h4>Leave reviews</h4>
-                      <p>Help other customers by leaving honest reviews after your service is completed.</p>
+                      <p>
+                        Help other customers by leaving honest reviews after your service is
+                        completed.
+                      </p>
                     </div>
                   </div>
                   <div className="tip-item">
                     <div className="tip-icon">🔔</div>
                     <div className="tip-text">
                       <h4>Stay connected</h4>
-                      <p>Keep your profile updated and check messages regularly for service updates.</p>
+                      <p>
+                        Keep your profile updated and check messages regularly for service updates.
+                      </p>
                     </div>
                   </div>
                 </div>

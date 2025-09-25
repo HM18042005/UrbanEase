@@ -1,16 +1,19 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+
 import { authAPI } from '../../api/auth';
+import { useAuth } from '../../context/AuthContext';
+import { getDefaultRedirectPath } from '../../utils/roleUtils';
 import './LandingPage.css';
 
 /**
  * LandingPage Component
- * 
+ *
  * What: Login and signup page with tabs for switching between modes
  * When: First page users see when visiting the application
  * Why: Handles user authentication and registration
- * 
+ *
  * Features:
  * - Tab-based interface for login/signup
  * - Form validation
@@ -25,7 +28,7 @@ const LandingPage = () => {
     confirmPassword: '',
     fullName: '',
     phone: '',
-    userType: 'customer' // customer, provider
+    userType: 'customer', // customer, provider
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +38,7 @@ const LandingPage = () => {
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
     setError(''); // Clear error when user types
   };
@@ -66,7 +69,7 @@ const LandingPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
 
     setLoading(true);
@@ -77,49 +80,36 @@ const LandingPage = () => {
         // Login
         const response = await authAPI.login({
           email: formData.email,
-          password: formData.password
+          password: formData.password,
         });
 
         // Store token and set user through context
         localStorage.setItem('token', response.token);
-        
+
         // Use AuthContext login for proper state management
         await login(formData.email, formData.password);
-        
-        // Redirect based on user role
-        switch (response.user.role) {
-          case 'admin':
-            navigate('/admin');
-            break;
-          case 'provider':
-            navigate('/provider');
-            break;
-          default:
-            navigate('/home');
-        }
+
+        // Redirect based on user role using utility function
+        const redirectPath = getDefaultRedirectPath(response.user.role);
+        navigate(redirectPath);
       } else {
         // Signup
         const response = await authAPI.register({
           name: formData.fullName,
           email: formData.email,
           password: formData.password,
-          role: formData.userType
+          role: formData.userType,
         });
 
         // Store token and set user through context
         localStorage.setItem('token', response.token);
-        
+
         // Use AuthContext register for proper state management
         await register(formData.fullName, formData.email, formData.password, formData.userType);
-        
-        // Redirect based on user role
-        switch (response.user.role) {
-          case 'provider':
-            navigate('/provider');
-            break;
-          default:
-            navigate('/home');
-        }
+
+        // Redirect based on user role using utility function
+        const redirectPath = getDefaultRedirectPath(response.user.role);
+        navigate(redirectPath);
       }
     } catch (err) {
       console.error('Authentication error:', err);
@@ -147,15 +137,15 @@ const LandingPage = () => {
       <main className="landing-main">
         <div className="auth-container">
           <h1 className="welcome-title">Welcome to UrbanEase</h1>
-          
+
           <div className="auth-tabs">
-            <button 
+            <button
               className={`tab-button ${activeTab === 'login' ? 'active' : ''}`}
               onClick={() => setActiveTab('login')}
             >
               Log in
             </button>
-            <button 
+            <button
               className={`tab-button ${activeTab === 'signup' ? 'active' : ''}`}
               onClick={() => setActiveTab('signup')}
             >
@@ -247,12 +237,8 @@ const LandingPage = () => {
 
             {error && <div className="error-message">{error}</div>}
 
-            <button 
-              type="submit" 
-              className="submit-button"
-              disabled={loading}
-            >
-              {loading ? 'Loading...' : (activeTab === 'login' ? 'Log in' : 'Sign up')}
+            <button type="submit" className="submit-button" disabled={loading}>
+              {loading ? 'Loading...' : activeTab === 'login' ? 'Log in' : 'Sign up'}
             </button>
 
             <div className="terms-text">

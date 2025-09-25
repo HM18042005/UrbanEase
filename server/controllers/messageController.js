@@ -1,5 +1,6 @@
 const Message = require('../models/message');
 const User = require('../models/user');
+const Booking = require('../models/booking');
 
 // Get conversations (list of users with whom current user has exchanged messages)
 exports.getConversations = async (req, res) => {
@@ -10,8 +11,8 @@ exports.getConversations = async (req, res) => {
       {
         $match: {
           $or: [
-            { sender: userId },
-            { receiver: userId }
+            { senderId: userId },
+            { receiverId: userId }
           ]
         }
       },
@@ -22,15 +23,15 @@ exports.getConversations = async (req, res) => {
         $group: {
           _id: {
             $cond: [
-              { $eq: ['$sender', userId] },
-              '$receiver',
-              '$sender'
+              { $eq: ['$senderId', userId] },
+              '$receiverId',
+              '$senderId'
             ]
           },
-          lastMessage: { $first: '$content' },
+          lastMessage: { $first: '$message' },
           lastMessageDate: { $first: '$createdAt' },
-          sender: { $first: '$sender' },
-          receiver: { $first: '$receiver' }
+          senderId: { $first: '$senderId' },
+          receiverId: { $first: '$receiverId' }
         }
       },
       {
@@ -72,6 +73,128 @@ exports.getConversations = async (req, res) => {
   }
 };
 
+// Get conversations based on booking relationships (customers can only contact providers they've booked)
+exports.getBookingBasedConversations = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userRole = req.user.role;
+
+  let conversations = [];
+
+  if (userRole === 'customer') {
+      // For customers: get providers they have bookings with
+      const bookings = await Booking.find({ customer: userId })
+        .populate('provider', '_id name email role')
+        .populate('service', 'title')
+        .select('provider service status createdAt');
+
+      // Get unique providers from bookings
+      const providerMap = new Map();
+      bookings.forEach(booking => {
+        if (booking.provider && !providerMap.has(booking.provider._id.toString())) {
+          providerMap.set(booking.provider._id.toString(), {
+            _id: booking.provider._id,
+            name: booking.provider.name,
+            email: booking.provider.email,
+            role: booking.provider.role,
+            lastBooking: booking.service.title,
+            lastBookingDate: booking.createdAt
+          });
+        }
+      });
+
+      // Get last message with each provider
+      for (const [providerId, providerInfo] of providerMap) {
+        const lastMessage = await Message.findOne({
+          $or: [
+            { senderId: userId, receiverId: providerId },
+            { senderId: providerId, receiverId: userId }
+          ]
+        })
+        .sort({ createdAt: -1 })
+        .select('message createdAt senderId receiverId');
+
+        // Count unread messages from provider to this customer
+        const unreadCount = await Message.countDocuments({
+          senderId: providerId,
+          receiverId: userId,
+          status: { $ne: 'read' }
+        });
+
+        conversations.push({
+          _id: providerId,
+          participant: providerInfo,
+          lastMessage: lastMessage?.message || '',
+          lastMessageTime: lastMessage?.createdAt || providerInfo.lastBookingDate,
+          unreadCount,
+          conversationType: 'booking-based'
+        });
+      }
+
+    } else if (userRole === 'provider') {
+      // For providers: get customers who have booked their services
+      const bookings = await Booking.find({ provider: userId })
+        .populate('customer', '_id name email role')
+        .populate('service', 'title')
+        .select('customer service status createdAt');
+
+      // Get unique customers from bookings
+      const customerMap = new Map();
+      bookings.forEach(booking => {
+        if (booking.customer && !customerMap.has(booking.customer._id.toString())) {
+          customerMap.set(booking.customer._id.toString(), {
+            _id: booking.customer._id,
+            name: booking.customer.name,
+            email: booking.customer.email,
+            role: booking.customer.role,
+            lastBooking: booking.service.title,
+            lastBookingDate: booking.createdAt
+          });
+        }
+      });
+
+      // Get last message with each customer
+      for (const [customerId, customerInfo] of customerMap) {
+        const lastMessage = await Message.findOne({
+          $or: [
+            { senderId: userId, receiverId: customerId },
+            { senderId: customerId, receiverId: userId }
+          ]
+        })
+        .sort({ createdAt: -1 })
+        .select('message createdAt senderId receiverId');
+
+        // Count unread messages from customer to this provider
+        const unreadCount = await Message.countDocuments({
+          senderId: customerId,
+          receiverId: userId,
+          status: { $ne: 'read' }
+        });
+
+        conversations.push({
+          _id: customerId,
+          participant: customerInfo,
+          lastMessage: lastMessage?.message || '',
+          lastMessageTime: lastMessage?.createdAt || customerInfo.lastBookingDate,
+          unreadCount,
+          conversationType: 'booking-based'
+        });
+      }
+    }
+
+    // Sort conversations by last message time
+    conversations.sort((a, b) => new Date(b.lastMessageTime) - new Date(a.lastMessageTime));
+
+    res.json({
+      success: true,
+      conversations
+    });
+  } catch (error) {
+    console.error('Get booking-based conversations error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 // Get messages between current user and another user
 exports.getConversationMessages = async (req, res) => {
   try {
@@ -80,27 +203,27 @@ exports.getConversationMessages = async (req, res) => {
     const currentUserId = req.user._id;
 
     // Check if the other user exists
-    const otherUser = await User.findById(userId).select('name email role');
+  const otherUser = await User.findById(userId).select('name email role');
     if (!otherUser) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
     const messages = await Message.find({
       $or: [
-        { sender: currentUserId, receiver: userId },
-        { sender: userId, receiver: currentUserId }
+        { senderId: currentUserId, receiverId: userId },
+        { senderId: userId, receiverId: currentUserId }
       ]
     })
-      .populate('sender', 'name email role')
-      .populate('receiver', 'name email role')
+      .populate('senderId', 'name email role')
+      .populate('receiverId', 'name email role')
       .sort({ createdAt: -1 })
       .limit(Number(limit))
       .skip((Number(page) - 1) * Number(limit));
 
     const total = await Message.countDocuments({
       $or: [
-        { sender: currentUserId, receiver: userId },
-        { sender: userId, receiver: currentUserId }
+        { senderId: currentUserId, receiverId: userId },
+        { senderId: userId, receiverId: currentUserId }
       ]
     });
 
@@ -128,7 +251,7 @@ exports.getConversationMessages = async (req, res) => {
 // Send a message
 exports.sendMessage = async (req, res) => {
   try {
-    const { receiverId, content } = req.body;
+  const { receiverId, content } = req.body;
 
     if (!receiverId || !content) {
       return res.status(400).json({ 
@@ -159,15 +282,18 @@ exports.sendMessage = async (req, res) => {
     }
 
     const message = new Message({
-      sender: req.user._id,
-      receiver: receiverId,
-      content: content.trim()
+      senderId: req.user._id,
+      receiverId,
+      message: String(content).trim(),
+      conversationId: Message.generateConversationId(req.user._id, receiverId),
+      timestamp: new Date(),
+      status: 'sent'
     });
 
     await message.save();
     await message.populate([
-      { path: 'sender', select: 'name email role' },
-      { path: 'receiver', select: 'name email role' }
+      { path: 'senderId', select: 'name email role' },
+      { path: 'receiverId', select: 'name email role' }
     ]);
 
     res.status(201).json({
@@ -214,6 +340,7 @@ exports.deleteMessage = async (req, res) => {
 exports.markAsRead = async (req, res) => {
   try {
     const { senderId } = req.body;
+    const receiverId = req.user._id;
 
     if (!senderId) {
       return res.status(400).json({ 
@@ -222,11 +349,19 @@ exports.markAsRead = async (req, res) => {
       });
     }
 
-    // This would require adding a 'read' field to the Message schema
-    // For now, just return success
+    const result = await Message.updateMany(
+      {
+        senderId,
+        receiverId,
+        status: { $ne: 'read' }
+      },
+      { $set: { status: 'read' } }
+    );
+
     res.json({
       success: true,
-      message: 'Messages marked as read'
+      message: 'Messages marked as read',
+      modifiedCount: result.modifiedCount
     });
   } catch (error) {
     console.error('Mark as read error:', error);
@@ -252,7 +387,7 @@ exports.getUnreadCount = async (req, res) => {
 // Search messages
 exports.searchMessages = async (req, res) => {
   try {
-    const { query, userId } = req.query;
+  const { query, userId } = req.query;
     const currentUserId = req.user._id;
 
     if (!query) {
@@ -263,24 +398,24 @@ exports.searchMessages = async (req, res) => {
     }
 
     const filter = {
-      content: { $regex: query, $options: 'i' },
+      message: { $regex: query, $options: 'i' },
       $or: [
-        { sender: currentUserId },
-        { receiver: currentUserId }
+        { senderId: currentUserId },
+        { receiverId: currentUserId }
       ]
     };
 
     // If userId is provided, search within that conversation only
     if (userId) {
       filter.$or = [
-        { sender: currentUserId, receiver: userId },
-        { sender: userId, receiver: currentUserId }
+        { senderId: currentUserId, receiverId: userId },
+        { senderId: userId, receiverId: currentUserId }
       ];
     }
 
     const messages = await Message.find(filter)
-      .populate('sender', 'name email')
-      .populate('receiver', 'name email')
+      .populate('senderId', 'name email')
+      .populate('receiverId', 'name email')
       .sort({ createdAt: -1 })
       .limit(20);
 

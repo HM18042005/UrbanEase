@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import Header from '../../components/Header';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+
 import { api } from '../../api/provider';
+import Header from '../../components/Header';
 import './Dashboard.css';
 
 const ProviderSchedulePage = () => {
@@ -9,17 +10,29 @@ const ProviderSchedulePage = () => {
   const [appointments, setAppointments] = useState([]);
   const [isGenerallyAvailable, setIsGenerallyAvailable] = useState(true);
 
-  const daysOfWeek = useMemo(() => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'], []);
+  const daysOfWeek = useMemo(
+    () => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+    []
+  );
   const timeSlots = [
-    '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', 
-    '3:00 PM', '4:00 PM', '5:00 PM', '6:00 PM', '7:00 PM'
+    '9:00 AM',
+    '10:00 AM',
+    '11:00 AM',
+    '12:00 PM',
+    '1:00 PM',
+    '2:00 PM',
+    '3:00 PM',
+    '4:00 PM',
+    '5:00 PM',
+    '6:00 PM',
+    '7:00 PM',
   ];
 
   const getWeekDates = useCallback((startDate) => {
     const week = [];
     const start = new Date(startDate);
     start.setDate(start.getDate() - start.getDay()); // Start from Sunday
-    
+
     for (let i = 0; i < 7; i++) {
       const date = new Date(start);
       date.setDate(start.getDate() + i);
@@ -33,18 +46,18 @@ const ProviderSchedulePage = () => {
       const weekStart = getWeekDates(currentWeek)[0];
       const response = await api.getSchedule({
         date: weekStart.toISOString().split('T')[0],
-        view: 'week'
+        view: 'week',
       });
       setAppointments(response.data.bookings || []);
-      
+
       // Initialize default schedule if no custom schedule exists
       const defaultSchedule = {};
-      daysOfWeek.forEach(day => {
+      daysOfWeek.forEach((day) => {
         defaultSchedule[day] = {
           isAvailable: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day),
           startTime: '9:00 AM',
           endTime: '5:00 PM',
-          breaks: []
+          breaks: [],
         };
       });
       setSchedule(defaultSchedule);
@@ -61,39 +74,39 @@ const ProviderSchedulePage = () => {
   const weekDates = getWeekDates(currentWeek);
 
   const updateDayAvailability = (day, isAvailable) => {
-    setSchedule(prev => ({
+    setSchedule((prev) => ({
       ...prev,
       [day]: {
         ...prev[day],
-        isAvailable
-      }
+        isAvailable,
+      },
     }));
   };
 
   const updateDayTimes = (day, startTime, endTime) => {
-    setSchedule(prev => ({
+    setSchedule((prev) => ({
       ...prev,
       [day]: {
         ...prev[day],
         startTime,
-        endTime
-      }
+        endTime,
+      },
     }));
   };
 
   const removeBreak = (day, breakIndex) => {
-    setSchedule(prev => ({
+    setSchedule((prev) => ({
       ...prev,
       [day]: {
         ...prev[day],
-        breaks: prev[day].breaks.filter((_, index) => index !== breakIndex)
-      }
+        breaks: prev[day].breaks.filter((_, index) => index !== breakIndex),
+      },
     }));
   };
 
   const getAppointmentsForDate = (date) => {
     const dateStr = date.toISOString().split('T')[0];
-    return appointments.filter(apt => apt.date === dateStr);
+    return appointments.filter((apt) => apt.date === dateStr);
   };
 
   const formatDate = (date) => {
@@ -102,7 +115,7 @@ const ProviderSchedulePage = () => {
 
   const navigateWeek = (direction) => {
     const newDate = new Date(currentWeek);
-    newDate.setDate(newDate.getDate() + (direction * 7));
+    newDate.setDate(newDate.getDate() + direction * 7);
     setCurrentWeek(newDate);
   };
 
@@ -124,7 +137,9 @@ const ProviderSchedulePage = () => {
                     id="availabilitySwitch"
                   />
                   <label className="form-check-label" htmlFor="availabilitySwitch">
-                    {isGenerallyAvailable ? '🟢 Available for new bookings' : '🔴 Not accepting new bookings'}
+                    {isGenerallyAvailable
+                      ? '🟢 Available for new bookings'
+                      : '🔴 Not accepting new bookings'}
                   </label>
                 </div>
               </div>
@@ -161,7 +176,9 @@ const ProviderSchedulePage = () => {
 
                 return (
                   <div key={day} className="col-12 col-md-6 col-lg-4 col-xl mb-3">
-                    <div className={`card h-100 ${isToday ? 'border-primary' : ''} ${!daySchedule.isAvailable ? 'bg-light' : ''}`}>
+                    <div
+                      className={`card h-100 ${isToday ? 'border-primary' : ''} ${!daySchedule.isAvailable ? 'bg-light' : ''}`}
+                    >
                       <div className="card-header text-center">
                         <h6 className="card-title mb-1">{day}</h6>
                         <small className="text-muted">{formatDate(date)}</small>
@@ -182,26 +199,40 @@ const ProviderSchedulePage = () => {
                       {daySchedule.isAvailable && (
                         <div className="card-body p-3">
                           <div className="mb-3">
-                            <label className="form-label small">Start:</label>
+                            <label className="form-label small" htmlFor={`start-time-${day}`}>
+                              Start:
+                            </label>
                             <select
                               className="form-select form-select-sm"
+                              id={`start-time-${day}`}
                               value={daySchedule.startTime || '9:00 AM'}
-                              onChange={(e) => updateDayTimes(day, e.target.value, daySchedule.endTime)}
+                              onChange={(e) =>
+                                updateDayTimes(day, e.target.value, daySchedule.endTime)
+                              }
                             >
-                              {timeSlots.map(time => (
-                                <option key={time} value={time}>{time}</option>
+                              {timeSlots.map((time) => (
+                                <option key={time} value={time}>
+                                  {time}
+                                </option>
                               ))}
                             </select>
                           </div>
                           <div className="mb-3">
-                            <label className="form-label small">End:</label>
+                            <label className="form-label small" htmlFor={`end-time-${day}`}>
+                              End:
+                            </label>
                             <select
                               className="form-select form-select-sm"
+                              id={`end-time-${day}`}
                               value={daySchedule.endTime || '5:00 PM'}
-                              onChange={(e) => updateDayTimes(day, daySchedule.startTime, e.target.value)}
+                              onChange={(e) =>
+                                updateDayTimes(day, daySchedule.startTime, e.target.value)
+                              }
                             >
-                              {timeSlots.map(time => (
-                                <option key={time} value={time}>{time}</option>
+                              {timeSlots.map((time) => (
+                                <option key={time} value={time}>
+                                  {time}
+                                </option>
                               ))}
                             </select>
                           </div>
@@ -209,11 +240,16 @@ const ProviderSchedulePage = () => {
                           {/* Breaks */}
                           {daySchedule.breaks && daySchedule.breaks.length > 0 && (
                             <div className="mb-3">
-                              <label className="form-label small">Breaks:</label>
+                              <span className="form-label small">Breaks:</span>
                               {daySchedule.breaks.map((brk, index) => (
-                                <div key={index} className="d-flex justify-content-between align-items-center mb-1 p-2 bg-light rounded">
-                                  <small>{brk.start} - {brk.end}</small>
-                                  <button 
+                                <div
+                                  key={index}
+                                  className="d-flex justify-content-between align-items-center mb-1 p-2 bg-light rounded"
+                                >
+                                  <small>
+                                    {brk.start} - {brk.end}
+                                  </small>
+                                  <button
                                     className="btn btn-sm btn-outline-danger"
                                     onClick={() => removeBreak(day, index)}
                                   >
@@ -226,15 +262,17 @@ const ProviderSchedulePage = () => {
 
                           {/* Appointments */}
                           <div className="mb-3">
-                            <label className="form-label small">Appointments ({dayAppointments.length})</label>
+                            <span className="form-label small">
+                              Appointments ({dayAppointments.length})
+                            </span>
                             {dayAppointments.length === 0 ? (
                               <div className="text-center p-3 text-muted">
                                 <small>No appointments</small>
                               </div>
                             ) : (
                               <div className="d-flex flex-column gap-2">
-                                {dayAppointments.map(appointment => (
-                                  <div 
+                                {dayAppointments.map((appointment) => (
+                                  <div
                                     key={appointment.id}
                                     className={`card ${appointment.status === 'confirmed' ? 'border-success' : 'border-warning'}`}
                                   >
@@ -242,11 +280,19 @@ const ProviderSchedulePage = () => {
                                       <div className="d-flex justify-content-between align-items-start">
                                         <div>
                                           <div className="fw-bold small">{appointment.time}</div>
-                                          <div className="text-muted small">{appointment.customerName}</div>
-                                          <div className="text-muted small">{appointment.service}</div>
-                                          <div className="text-muted small">{appointment.duration}</div>
+                                          <div className="text-muted small">
+                                            {appointment.customerName}
+                                          </div>
+                                          <div className="text-muted small">
+                                            {appointment.service}
+                                          </div>
+                                          <div className="text-muted small">
+                                            {appointment.duration}
+                                          </div>
                                         </div>
-                                        <span className={`badge ${appointment.status === 'confirmed' ? 'bg-success' : 'bg-warning'}`}>
+                                        <span
+                                          className={`badge ${appointment.status === 'confirmed' ? 'bg-success' : 'bg-warning'}`}
+                                        >
                                           {appointment.status}
                                         </span>
                                       </div>
@@ -277,12 +323,8 @@ const ProviderSchedulePage = () => {
                   <div className="card-body">
                     <h5 className="card-title">Quick Actions</h5>
                     <div className="d-flex flex-wrap gap-2">
-                      <button className="btn btn-primary btn-sm">
-                        📅 Block Time Off
-                      </button>
-                      <button className="btn btn-outline-primary btn-sm">
-                        🔄 Copy Last Week
-                      </button>
+                      <button className="btn btn-primary btn-sm">📅 Block Time Off</button>
+                      <button className="btn btn-outline-primary btn-sm">🔄 Copy Last Week</button>
                       <button className="btn btn-outline-secondary btn-sm">
                         ⚙️ Set Default Hours
                       </button>
@@ -304,12 +346,14 @@ const ProviderSchedulePage = () => {
                         <small className="text-muted">Appointments</small>
                       </div>
                       <div className="col-6">
-                        <div className="h5 mb-0 text-warning">{appointments.filter(a => a.status === 'pending').length}</div>
+                        <div className="h5 mb-0 text-warning">
+                          {appointments.filter((a) => a.status === 'pending').length}
+                        </div>
                         <small className="text-muted">Pending</small>
                       </div>
                       <div className="col-6">
                         <div className="h5 mb-0 text-success">
-                          {Object.values(schedule).filter(s => s.isAvailable).length}
+                          {Object.values(schedule).filter((s) => s.isAvailable).length}
                         </div>
                         <small className="text-muted">Available Days</small>
                       </div>

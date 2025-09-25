@@ -1,17 +1,20 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
 import { Link } from 'react-router-dom';
+
+import { getCategories, getFeaturedServices } from '../../api/services';
 import Header from '../../components/Header';
 import ServiceCard from '../../components/ServiceCard';
-import { getFeaturedServices, getCategories } from '../../api/services';
 import './HomePage.css';
+import { getCategoryImage, getDefaultImage } from '../../utils/categoryImages';
 
 /**
  * HomePage Component
- * 
+ *
  * What: Main dashboard showing featured services, categories, and search functionality
  * When: Displayed after user login, main navigation hub
  * Why: Provides easy access to all services and helps users discover what they need
- * 
+ *
  * Features:
  * - Search bar for services
  * - Featured services section
@@ -30,26 +33,25 @@ const HomePage = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
+
         // Fetch featured services and categories from API
         const [servicesData, categoriesData] = await Promise.all([
           getFeaturedServices().catch(() => []),
-          getCategories().catch(() => [])
+          getCategories().catch(() => []),
         ]);
-        
+
         setFeaturedServices(servicesData || []);
-        
+
         // Transform category strings into objects
         const transformedCategories = (categoriesData || []).map((categoryName, index) => ({
           id: index + 1,
           name: categoryName,
           description: `Professional ${categoryName.toLowerCase()} services`,
-          image: `/api/placeholder/300/200?text=${encodeURIComponent(categoryName)}`,
-          serviceCount: 0 // Will be updated when we have service counts
+          image: getCategoryImage(categoryName, 'grid'),
+          serviceCount: 0, // Will be updated when we have service counts
         }));
-        
+
         setCategories(transformedCategories);
-        
       } catch (err) {
         console.error('Error fetching homepage data:', err);
         setError('Failed to load homepage data');
@@ -74,8 +76,8 @@ const HomePage = () => {
 
   return (
     <div className="home-page">
-  <Header />
-      
+      <Header />
+
       <main className="home-main">
         <div className="container">
           {/* Hero Search Section */}
@@ -99,7 +101,7 @@ const HomePage = () => {
           {/* Featured Services */}
           <section className="featured-section">
             <h2 className="section-title">Featured Services</h2>
-            
+
             {loading ? (
               <div className="loading-state">
                 <p>Loading services...</p>
@@ -115,47 +117,14 @@ const HomePage = () => {
               </div>
             ) : (
               <div className="services-grid medium">
-                {featuredServices.map(service => (
-                  <ServiceCard 
-                    key={service.id} 
-                    service={service} 
-                    size="medium"
-                  />
+                {featuredServices.map((service) => (
+                  <ServiceCard key={service.id} service={service} size="medium" />
                 ))}
               </div>
             )}
           </section>
 
-          {/* Categories */}
-          <section className="categories-section">
-            <h2 className="section-title">Categories</h2>
-            <div className="categories-grid">
-              {categories.map(category => (
-                <Link 
-                  key={category.id} 
-                  to={`/services?category=${category.name}`}
-                  className="category-card"
-                >
-                  <div className="category-image">
-                    <img 
-                      src={category.image} 
-                      alt={category.name}
-                      onError={(e) => {
-                        e.target.src = '/api/placeholder/300/200';
-                      }}
-                    />
-                  </div>
-                  <div className="category-content">
-                    <h3 className="category-title">{category.name}</h3>
-                    <p className="category-description">{category.description}</p>
-                    <span className="category-count">
-                      {category.serviceCount} services
-                    </span>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </section>
+          {/* Categories section removed as requested */}
 
           {/* Quick Stats */}
           <section className="stats-section">

@@ -909,3 +909,350 @@ exports.getReports = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
+
+// Get advanced analytics
+exports.getAdvancedAnalytics = async (req, res) => {
+  try {
+    const { timeRange = '30' } = req.query; // days
+    const daysBack = parseInt(timeRange);
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - daysBack);
+
+    // User growth trend
+    const userGrowth = await User.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+      }
+    ]);
+
+    // Booking trends
+    const bookingTrends = await Booking.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          count: { $sum: 1 },
+          totalRevenue: { $sum: '$amount' }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 }
+      }
+    ]);
+
+    // Popular services
+    const popularServices = await Booking.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$service',
+          bookings: { $sum: 1 },
+          totalRevenue: { $sum: '$amount' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'services',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'serviceData'
+        }
+      },
+      {
+        $unwind: '$serviceData'
+      },
+      {
+        $project: {
+          title: '$serviceData.title',
+          category: '$serviceData.category',
+          bookings: 1,
+          totalRevenue: 1
+        }
+      },
+      {
+        $sort: { bookings: -1 }
+      },
+      {
+        $limit: 10
+      }
+    ]);
+
+    // Provider performance
+    const providerPerformance = await User.aggregate([
+      {
+        $match: { role: 'provider' }
+      },
+      {
+        $lookup: {
+          from: 'services',
+          localField: '_id',
+          foreignField: 'provider',
+          as: 'services'
+        }
+      },
+      {
+        $lookup: {
+          from: 'bookings',
+          let: { serviceIds: '$services._id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ['$service', '$$serviceIds'] },
+                createdAt: { $gte: startDate }
+              }
+            }
+          ],
+          as: 'bookings'
+        }
+      },
+      {
+        $lookup: {
+          from: 'reviews',
+          let: { serviceIds: '$services._id' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ['$service', '$$serviceIds'] }
+              }
+            }
+          ],
+          as: 'reviews'
+        }
+      },
+      {
+        $project: {
+          name: 1,
+          email: 1,
+          serviceCount: { $size: '$services' },
+          bookingCount: { $size: '$bookings' },
+          totalRevenue: { $sum: '$bookings.amount' },
+          averageRating: { $avg: '$reviews.rating' },
+          reviewCount: { $size: '$reviews' }
+        }
+      },
+      {
+        $sort: { bookingCount: -1 }
+      },
+      {
+        $limit: 10
+      }
+    ]);
+
+    // Category performance
+    const categoryPerformance = await Service.aggregate([
+      {
+        $lookup: {
+          from: 'bookings',
+          localField: '_id',
+          foreignField: 'service',
+          pipeline: [
+            {
+              $match: {
+                createdAt: { $gte: startDate }
+              }
+            }
+          ],
+          as: 'bookings'
+        }
+      },
+      {
+        $group: {
+          _id: '$category',
+          serviceCount: { $sum: 1 },
+          bookingCount: { $sum: { $size: '$bookings' } },
+          totalRevenue: {
+            $sum: {
+              $reduce: {
+                input: '$bookings',
+                initialValue: 0,
+                in: { $add: ['$$value', '$$this.amount'] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $sort: { bookingCount: -1 }
+      }
+    ]);
+
+    // Recent activity
+    const recentActivity = await Promise.all([
+      User.find({}).sort({ createdAt: -1 }).limit(5).select('name role createdAt'),
+      Booking.find({}).sort({ createdAt: -1 }).limit(5)
+        .populate('user', 'name')
+        .populate('service', 'title')
+        .select('user service status createdAt amount'),
+      Review.find({}).sort({ createdAt: -1 }).limit(5)
+        .populate('user', 'name')
+        .populate('service', 'title')
+        .select('user service rating comment createdAt')
+    ]);
+
+    const [recentUsers, recentBookings, recentReviews] = recentActivity;
+
+    // Revenue breakdown by payment status
+    const revenueBreakdown = await Booking.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: '$paymentStatus',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      analytics: {
+        userGrowth,
+        bookingTrends,
+        popularServices,
+        providerPerformance,
+        categoryPerformance,
+        recentActivity: {
+          users: recentUsers,
+          bookings: recentBookings,
+          reviews: recentReviews
+        },
+        revenueBreakdown,
+        timeRange: daysBack
+      }
+    });
+  } catch (error) {
+    console.error('Get advanced analytics error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Get real-time metrics
+exports.getRealTimeMetrics = async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Today's metrics
+    const todayMetrics = await Promise.all([
+      User.countDocuments({ createdAt: { $gte: today } }),
+      Booking.countDocuments({ createdAt: { $gte: today } }),
+      Service.countDocuments({ createdAt: { $gte: today } }),
+      Review.countDocuments({ createdAt: { $gte: today } })
+    ]);
+
+    // Yesterday's metrics for comparison
+    const yesterdayMetrics = await Promise.all([
+      User.countDocuments({ createdAt: { $gte: yesterday, $lt: today } }),
+      Booking.countDocuments({ createdAt: { $gte: yesterday, $lt: today } }),
+      Service.countDocuments({ createdAt: { $gte: yesterday, $lt: today } }),
+      Review.countDocuments({ createdAt: { $gte: yesterday, $lt: today } })
+    ]);
+
+    // Revenue today
+    const todayRevenue = await Booking.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: today },
+          paymentStatus: 'paid'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    const yesterdayRevenue = await Booking.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: yesterday, $lt: today },
+          paymentStatus: 'paid'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$amount' }
+        }
+      }
+    ]);
+
+    const calculateGrowth = (today, yesterday) => {
+      if (yesterday === 0) return today > 0 ? 100 : 0;
+      return ((today - yesterday) / yesterday * 100).toFixed(1);
+    };
+
+    res.json({
+      success: true,
+      metrics: {
+        users: {
+          today: todayMetrics[0],
+          yesterday: yesterdayMetrics[0],
+          growth: calculateGrowth(todayMetrics[0], yesterdayMetrics[0])
+        },
+        bookings: {
+          today: todayMetrics[1],
+          yesterday: yesterdayMetrics[1],
+          growth: calculateGrowth(todayMetrics[1], yesterdayMetrics[1])
+        },
+        services: {
+          today: todayMetrics[2],
+          yesterday: yesterdayMetrics[2],
+          growth: calculateGrowth(todayMetrics[2], yesterdayMetrics[2])
+        },
+        reviews: {
+          today: todayMetrics[3],
+          yesterday: yesterdayMetrics[3],
+          growth: calculateGrowth(todayMetrics[3], yesterdayMetrics[3])
+        },
+        revenue: {
+          today: todayRevenue[0]?.total || 0,
+          yesterday: yesterdayRevenue[0]?.total || 0,
+          growth: calculateGrowth(
+            todayRevenue[0]?.total || 0,
+            yesterdayRevenue[0]?.total || 0
+          )
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Get real-time metrics error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};

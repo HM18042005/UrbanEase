@@ -35,6 +35,8 @@ router.patch('/messages/:customerId/read', providerController.markMessagesRead);
 // Schedule and booking routes
 router.get('/schedule', providerController.getSchedule);
 router.post('/schedule/availability', providerController.updateAvailability);
+router.get('/availability', providerController.getAvailability);
+router.post('/timeslots/bulk', providerController.bulkTimeSlotUpdate);
 router.get('/bookings', providerController.getBookings);
 router.patch('/bookings/:id', providerController.updateBookingStatus);
 

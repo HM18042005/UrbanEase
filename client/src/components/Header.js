@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+
+import PropTypes from 'prop-types';
 import { Link, useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../context/AuthContext';
 import './Header.css';
 
@@ -28,19 +31,27 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
     }
   };
 
+  // Get the appropriate dashboard URL based on user role
+  const getDashboardUrl = () => {
+    if (userType === 'admin') return '/admin';
+    if (userType === 'provider') return '/provider';
+    return '/home';
+  };
+
   return (
     <header className="header">
       <div className="header-container">
-        <Link to="/home" className="logo">
+        <Link to={getDashboardUrl()} className="logo">
           <span className="logo-icon">🏢</span>
           UrbanEase
         </Link>
 
         {/* Mobile Menu Toggle */}
-        <button 
+        <button
           className="mobile-menu-toggle desktop-hidden"
           onClick={() => setShowMobileMenu(!showMobileMenu)}
           aria-label="Toggle mobile menu"
+          aria-expanded={showMobileMenu}
         >
           <span className={`hamburger ${showMobileMenu ? 'active' : ''}`}>
             <span></span>
@@ -53,13 +64,21 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
           {userType === 'provider' ? (
             // Provider-specific navigation
             <>
+              <Link to="/provider" className="nav-link">
+                <span className="nav-icon">🏠</span>
+                Dashboard
+              </Link>
               <Link to="/provider/services" className="nav-link">
                 <span className="nav-icon">🔧</span>
-                Manage Services
+                Services
+              </Link>
+              <Link to="/provider/bookings" className="nav-link">
+                <span className="nav-icon">📋</span>
+                Bookings
               </Link>
               <Link to="/provider/messages" className="nav-link">
                 <span className="nav-icon">💬</span>
-                Message Customers
+                Messages
               </Link>
               <Link to="/provider/schedule" className="nav-link">
                 <span className="nav-icon">📅</span>
@@ -69,13 +88,12 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                 <span className="nav-icon">📊</span>
                 Reports
               </Link>
-              
             </>
           ) : userType === 'admin' ? (
             // Admin-specific navigation
             <>
               <Link to="/admin" className="nav-link">
-                <span className="nav-icon">📊</span>
+                <span className="nav-icon">🏠</span>
                 Dashboard
               </Link>
               <Link to="/admin/users" className="nav-link">
@@ -102,24 +120,38 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
           ) : (
             // Regular user/client navigation
             <>
-              <Link to="/home" className="nav-link">Home</Link>
-              <Link to="/services" className="nav-link">Services</Link>
+              <Link to="/home" className="nav-link">
+                Home
+              </Link>
+              <Link to="/services" className="nav-link">
+                Services
+              </Link>
               {isLoggedIn && (
                 <>
-                  <Link to="/bookings" className="nav-link">Bookings</Link>
-                  <Link to="/profile" className="nav-link">Profile</Link>
+                  <Link to="/bookings" className="nav-link">
+                    Bookings
+                  </Link>
+                  <Link to="/messages" className="nav-link">
+                    <span className="nav-icon">💬</span>
+                    Messages
+                  </Link>
+                  <Link to="/profile" className="nav-link">
+                    Profile
+                  </Link>
                 </>
               )}
               {!isLoggedIn && (
-                <Link to="/login" className="nav-link">Log in</Link>
+                <Link to="/login" className="nav-link">
+                  Log in
+                </Link>
               )}
             </>
           )}
-          
+
           {isLoggedIn && (
-            <button 
-              onClick={handleLogout} 
-              className="nav-link logout-btn" 
+            <button
+              onClick={handleLogout}
+              className="nav-link logout-btn"
               style={{ background: 'none', border: 'none', cursor: 'pointer' }}
             >
               <span className="nav-icon">🚪</span>
@@ -141,10 +173,7 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
 
           {isLoggedIn && (
             <div className="profile-menu">
-              <button 
-                className="profile-btn"
-                onClick={() => setShowProfile(!showProfile)}
-              >
+              <button className="profile-btn" onClick={() => setShowProfile(!showProfile)}>
                 <div className="profile-icon">
                   {userType === 'provider' ? '�' : userType === 'admin' ? '⚙️' : '👤'}
                 </div>
@@ -152,20 +181,26 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                   {userType === 'provider' ? 'Provider' : userType === 'admin' ? 'Admin' : 'User'}
                 </span>
               </button>
-              
+
               {showProfile && (
                 <div className="profile-dropdown">
                   <div className="dropdown-header">
                     <strong>{user?.name || 'User'}</strong>
-                    <small>{userType === 'provider' ? 'Service Provider' : userType === 'admin' ? 'Administrator' : 'Customer'}</small>
+                    <small>
+                      {userType === 'provider'
+                        ? 'Service Provider'
+                        : userType === 'admin'
+                          ? 'Administrator'
+                          : 'Customer'}
+                    </small>
                   </div>
                   <div className="dropdown-divider"></div>
-                  
+
                   <Link to="/profile" className="dropdown-item">
                     <span className="dropdown-icon">👤</span>
                     Profile Settings
                   </Link>
-                  
+
                   {userType === 'provider' ? (
                     <>
                       <Link to="/provider" className="dropdown-item">
@@ -175,6 +210,10 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                       <Link to="/provider/services" className="dropdown-item">
                         <span className="dropdown-icon">🔧</span>
                         My Services
+                      </Link>
+                      <Link to="/provider/bookings" className="dropdown-item">
+                        <span className="dropdown-icon">📋</span>
+                        My Bookings
                       </Link>
                       <Link to="/provider/messages" className="dropdown-item">
                         <span className="dropdown-icon">💬</span>
@@ -219,8 +258,8 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                         My Bookings
                       </Link>
                       {(user?.role === 'provider' || user?.role === 'admin') && (
-                        <Link 
-                          to={user.role === 'provider' ? '/provider' : '/admin'} 
+                        <Link
+                          to={user.role === 'provider' ? '/provider' : '/admin'}
                           className="dropdown-item"
                         >
                           <span className="dropdown-icon">
@@ -231,7 +270,7 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                       )}
                     </>
                   )}
-                  
+
                   <div className="dropdown-divider"></div>
                   <button onClick={handleLogout} className="dropdown-item logout">
                     <span className="dropdown-icon">🚪</span>
@@ -248,3 +287,8 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
 };
 
 export default Header;
+
+Header.propTypes = {
+  isLoggedIn: PropTypes.bool,
+  userType: PropTypes.oneOf(['user', 'customer', 'provider', 'admin']),
+};

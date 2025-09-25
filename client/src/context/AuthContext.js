@@ -1,4 +1,7 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+
+import PropTypes from 'prop-types';
+
 import * as Auth from '../api/auth';
 
 const AuthContext = createContext(null);
@@ -24,25 +27,25 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  const login = async (email, password) => {
+  const login = useCallback(async (email, password) => {
     const res = await Auth.login({ email, password });
     if (res.token) {
       localStorage.setItem('token', res.token);
     }
     setUser(res.user);
     return res;
-  };
+  }, []);
 
-  const register = async (name, email, password, role = 'customer') => {
+  const register = useCallback(async (name, email, password, role = 'customer') => {
     const res = await Auth.register({ name, email, password, role });
     if (res.token) {
       localStorage.setItem('token', res.token);
     }
     setUser(res.user);
     return res;
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       await Auth.logout();
     } catch (error) {
@@ -51,20 +54,18 @@ export const AuthProvider = ({ children }) => {
     }
     localStorage.removeItem('token');
     setUser(null);
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      isAuthenticated: !!user,
-      login, 
-      register, 
-      logout 
-    }}>
-      {children}
-    </AuthContext.Provider>
+  const value = useMemo(
+    () => ({ user, loading, isAuthenticated: !!user, login, register, logout }),
+    [user, loading, login, register, logout]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export const useAuth = () => useContext(AuthContext);
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};

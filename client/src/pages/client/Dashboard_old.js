@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
+
 import Header from '../../components/Header';
+
 import { Link } from 'react-router-dom';
+
 import './Dashboard.css';
 import { bookingAPI, serviceAPI, clientAPI } from '../../api/services';
 import { useAuth } from '../../context/AuthContext';
 
 /**
  * Dashboard Component (Client Dashboard)
- * 
+ *
  * What: Client's main dashboard showing bookings, favorite services, and account overview
  * When: Accessed by clients to manage their bookings and account
  * Why: Provides overview of client's services and allows management of bookings
- * 
+ *
  * Features:
  * - Recent bookings overview
  * - Upcoming appointments
@@ -24,7 +27,7 @@ const Dashboard = () => {
     totalBookings: 0,
     upcomingBookings: 0,
     completedBookings: 0,
-    pendingBookings: 0
+    pendingBookings: 0,
   });
   const [recentBookings, setRecentBookings] = useState([]);
   const [favoriteServices, setFavoriteServices] = useState([]);
@@ -43,23 +46,19 @@ const Dashboard = () => {
       // Fetch client's bookings
       const bookingsResponse = await bookingAPI.getMyBookings();
       const bookings = bookingsResponse.data || [];
-      
+
       // Calculate statistics
       const stats = {
         totalBookings: bookings.length,
-        upcomingBookings: bookings.filter(b => 
+        upcomingBookings: bookings.filter((b) =>
           ['pending', 'confirmed'].includes(b.status?.toLowerCase())
         ).length,
-        completedBookings: bookings.filter(b => 
-          b.status?.toLowerCase() === 'completed'
-        ).length,
-        pendingBookings: bookings.filter(b => 
-          b.status?.toLowerCase() === 'pending'
-        ).length
+        completedBookings: bookings.filter((b) => b.status?.toLowerCase() === 'completed').length,
+        pendingBookings: bookings.filter((b) => b.status?.toLowerCase() === 'pending').length,
       };
-      
+
       setDashboardData(stats);
-      
+
       // Get recent bookings (last 5)
       const recent = bookings
         .sort((a, b) => new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date))
@@ -74,7 +73,6 @@ const Dashboard = () => {
         console.error('Error fetching favorite services:', serviceError);
         setFavoriteServices([]);
       }
-
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       setError(err.response?.data?.message || 'Failed to load dashboard data');
@@ -85,11 +83,16 @@ const Dashboard = () => {
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'confirmed': return '#28a745';
-      case 'pending': return '#ffc107';
-      case 'completed': return '#007bff';
-      case 'cancelled': return '#dc3545';
-      default: return '#6c757d';
+      case 'confirmed':
+        return '#28a745';
+      case 'pending':
+        return '#ffc107';
+      case 'completed':
+        return '#007bff';
+      case 'cancelled':
+        return '#dc3545';
+      default:
+        return '#6c757d';
     }
   };
 
@@ -99,14 +102,14 @@ const Dashboard = () => {
     return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric'
+      year: 'numeric',
     });
   };
 
   return (
     <div className="dashboard-page">
-  <Header />
-      
+      <Header />
+
       <main className="dashboard-main">
         <div className="container">
           <div className="dashboard-header">
@@ -154,14 +157,16 @@ const Dashboard = () => {
                   </div>
                 </div>
                 <div className="earnings-amount">
-                  <span className="amount-value">${dashboardData.totalEarnings.toLocaleString()}</span>
+                  <span className="amount-value">
+                    ${dashboardData.totalEarnings.toLocaleString()}
+                  </span>
                 </div>
                 <div className="chart-container">
                   <div className="simple-chart">
                     {earningsData.map((data, index) => (
                       <div key={index} className="chart-bar">
-                        <div 
-                          className="bar" 
+                        <div
+                          className="bar"
                           style={{ height: `${(data.earnings / 1400) * 100}%` }}
                         ></div>
                         <span className="bar-label">{data.month}</span>
@@ -178,14 +183,17 @@ const Dashboard = () => {
                 </div>
                 <div className="availability-content">
                   <div className="availability-status">
-                    <span className={`status-indicator ${dashboardData.isAvailable ? 'available' : 'unavailable'}`}>
+                    <span
+                      className={`status-indicator ${dashboardData.isAvailable ? 'available' : 'unavailable'}`}
+                    >
                       {dashboardData.isAvailable ? 'Available' : 'Unavailable'}
                     </span>
                     <span className="status-description">
-                      Currently {dashboardData.isAvailable ? 'accepting' : 'not accepting'} new bookings
+                      Currently {dashboardData.isAvailable ? 'accepting' : 'not accepting'} new
+                      bookings
                     </span>
                   </div>
-                  <button 
+                  <button
                     className={`availability-toggle ${dashboardData.isAvailable ? 'available' : 'unavailable'}`}
                     onClick={toggleAvailability}
                   >
@@ -200,16 +208,14 @@ const Dashboard = () => {
                   <h3 className="card-title">Recent Reviews</h3>
                 </div>
                 <div className="reviews-list">
-                  {recentReviews.map(review => (
+                  {recentReviews.map((review) => (
                     <div key={review.id} className="review-item">
                       <div className="review-header">
                         <div className="reviewer-info">
                           <span className="reviewer-name">{review.customerName}</span>
                           <span className="review-date">{review.date}</span>
                         </div>
-                        <div className="review-rating">
-                          {'⭐'.repeat(review.rating)}
-                        </div>
+                        <div className="review-rating">{'⭐'.repeat(review.rating)}</div>
                       </div>
                       <p className="review-comment">{review.comment}</p>
                     </div>
@@ -230,11 +236,14 @@ const Dashboard = () => {
                     <div className="no-requests">
                       <div className="no-requests-icon">📭</div>
                       <h4>No new requests</h4>
-                      <p>You have no new service requests at the moment. Check back later or adjust your availability to attract more clients.</p>
+                      <p>
+                        You have no new service requests at the moment. Check back later or adjust
+                        your availability to attract more clients.
+                      </p>
                     </div>
                   ) : (
                     <div className="requests-list">
-                      {newRequests.map(request => (
+                      {newRequests.map((request) => (
                         <div key={request.id} className="request-item">
                           {/* Request content would go here */}
                         </div>

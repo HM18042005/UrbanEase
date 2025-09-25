@@ -152,8 +152,10 @@ exports.createBooking = async (req, res) => {
 // Update booking status (provider or customer)
 exports.updateBookingStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-    const validStatuses = ['pending', 'confirmed', 'completed', 'cancelled'];
+    let { status } = req.body;
+    // Normalize status to underscore variant
+    if (status === 'in-progress') status = 'in_progress';
+    const validStatuses = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
 
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ 
@@ -193,7 +195,7 @@ exports.updateBookingStatus = async (req, res) => {
       });
     }
 
-    booking.status = status;
+  booking.status = status;
     await booking.save();
     await booking.populate([
       { path: 'customer', select: 'name email phone' },

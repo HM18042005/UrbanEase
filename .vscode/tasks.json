@@ -28,7 +28,24 @@
 		{
 			"label": "Start Both",
 			"dependsOrder": "parallel",
-			"dependsOn": ["Start Server", "Start Client"],
+			"dependsOn": [
+				"Start Server",
+				"Start Client"
+			],
+			"group": "build"
+		},
+		{
+			"label": "Install ESLint/Prettier deps (client)",
+			"type": "shell",
+			"command": "npm install --save-dev eslint@^8.57.0 eslint-config-prettier@^9.1.0 eslint-plugin-import@^2.31.0 eslint-plugin-jsx-a11y@^6.10.0 eslint-plugin-react@^7.37.1 eslint-plugin-react-hooks@^5.0.0 prettier@^3.3.3",
+			"args": [],
+			"group": "build"
+		},
+		{
+			"label": "Install eslint-plugin-prettier (client)",
+			"type": "shell",
+			"command": "npm --prefix client install --save-dev eslint-plugin-prettier@^5.2.1",
+			"args": [],
 			"group": "build"
 		}
 	]

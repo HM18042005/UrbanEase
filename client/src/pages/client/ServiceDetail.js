@@ -1,16 +1,20 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+
+import { useNavigate, useParams } from 'react-router-dom';
+
+import { reviewAPI, serviceAPI, getServicesByCategory } from '../../api/services';
 import Header from '../../components/Header';
 import './ServiceDetail.css';
-import { serviceAPI, reviewAPI } from '../../api/services';
+import ServiceCard from '../../components/ServiceCard';
+import { getCategoryImage, getDefaultImage } from '../../utils/categoryImages';
 
 /**
  * ServiceDetail Component
- * 
+ *
  * What: Detailed view of a specific service with booking functionality
  * When: Accessed when user clicks on a service card
  * Why: Provides comprehensive service information and enables booking
- * 
+ *
  * Features:
  * - Service images gallery
  * - Service description and details
@@ -27,30 +31,32 @@ const ServiceDetail = () => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedImageIdx, setSelectedImageIdx] = useState(0);
+  const [relatedServices, setRelatedServices] = useState([]);
 
   // Debug log
-  console.log('ServiceDetail - ID from params:', id);
+  console.warn('ServiceDetail - ID from params:', id);
 
   const fetchServiceDetail = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       if (!id || id === 'undefined') {
         setError(`Invalid service ID: ${id}. Please check the URL or go back to services.`);
         setLoading(false);
         return;
       }
-      
+
       // Fetch service details
       const serviceData = await serviceAPI.getService(id);
       setService(serviceData);
-      
+
       // Provider info is already included in the service response
       if (serviceData.provider) {
         setProvider(serviceData.provider);
       }
-      
+
       // Fetch reviews for this service
       try {
         const reviewsData = await reviewAPI.getReviews(id);
@@ -59,7 +65,21 @@ const ServiceDetail = () => {
         console.error('Error fetching reviews:', reviewError);
         setReviews([]);
       }
-      
+      // Fetch related services in same category (best-effort)
+      try {
+        if (serviceData.category) {
+          const rel = await getServicesByCategory(serviceData.category);
+          const filtered = (rel || []).filter(
+            (s) => (s._id || s.id) !== (serviceData._id || serviceData.id)
+          );
+          setRelatedServices(filtered.slice(0, 3));
+        } else {
+          setRelatedServices([]);
+        }
+      } catch (relErr) {
+        console.warn('Related services fetch failed:', relErr);
+        setRelatedServices([]);
+      }
     } catch (err) {
       console.error('Error fetching service detail:', err);
       setError(err.response?.data?.message || 'Failed to load service details');
@@ -90,7 +110,7 @@ const ServiceDetail = () => {
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) return `${Math.ceil(diffDays / 7)} weeks ago`;
     if (diffDays < 365) return `${Math.ceil(diffDays / 30)} months ago`;
@@ -124,14 +144,14 @@ const ServiceDetail = () => {
   return (
     <div className="service-detail-page">
       <Header />
-      
+
       <main className="service-detail-main">
         <div className="container">
           {/* Breadcrumb */}
           <nav className="breadcrumb">
-            <span onClick={() => navigate('/services')} className="breadcrumb-link">
+            <button type="button" onClick={() => navigate('/services')} className="breadcrumb-link">
               Services
-            </span>
+            </button>
             <span className="breadcrumb-separator">/</span>
             <span className="breadcrumb-current">{service.category || 'Service'}</span>
           </nav>
@@ -141,25 +161,42 @@ const ServiceDetail = () => {
             <div className="service-left">
               <div className="service-images">
                 <div className="main-image">
-                  <img 
-                    src={service.images?.[0] || service.image || 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&h=400&fit=crop'} 
-                    alt={service.title || service.name || 'Service'} 
+                  <img
+                    src={
+                      (service.images && service.images[selectedImageIdx]) ||
+                      service.image ||
+                      getCategoryImage(service.category, 'detail')
+                    }
+                    alt={service.title || service.name || 'Service'}
+                    loading="lazy"
+                    decoding="async"
                     onError={(e) => {
-                      e.target.src = 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&h=400&fit=crop';
+                      e.target.onerror = null;
+                      e.target.src = getDefaultImage('detail');
                     }}
                   />
                 </div>
                 {service.images && service.images.length > 1 && (
                   <div className="image-thumbnails">
-                    {service.images.slice(1, 4).map((image, index) => (
-                      <img 
-                        key={index} 
-                        src={image} 
-                        alt={`${service.title || service.name} ${index + 2}`}
-                        onError={(e) => {
-                          e.target.src = 'https://images.unsplash.com/photo-1585421514738-01798e348b17?w=600&h=400&fit=crop';
-                        }}
-                      />
+                    {service.images.slice(0, 6).map((image, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        className={`thumb-btn ${selectedImageIdx === index ? 'active' : ''}`}
+                        onClick={() => setSelectedImageIdx(index)}
+                        aria-label={`View image ${index + 1}`}
+                      >
+                        <img
+                          src={image || getCategoryImage(service.category, 'thumb')}
+                          alt={`${service.title || service.name} ${index + 1}`}
+                          loading="lazy"
+                          decoding="async"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = getDefaultImage('thumb');
+                          }}
+                        />
+                      </button>
                     ))}
                   </div>
                 )}
@@ -167,6 +204,15 @@ const ServiceDetail = () => {
 
               <div className="service-info">
                 <h1 className="service-title">{service.title || service.name || 'Service'}</h1>
+                <div className="meta-chips" aria-label="Service meta">
+                  {service.category && <span className="chip primary">{service.category}</span>}
+                  {service.duration && <span className="chip">{service.duration}</span>}
+                  {service.isAvailable !== undefined && (
+                    <span className={`chip ${service.isAvailable ? 'success' : 'danger'}`}>
+                      {service.isAvailable ? 'Available' : 'Unavailable'}
+                    </span>
+                  )}
+                </div>
                 <p className="service-description">
                   {service.longDescription || service.description || 'No description available.'}
                 </p>
@@ -187,6 +233,22 @@ const ServiceDetail = () => {
                 </div>
               )}
 
+              {/* Highlights */}
+              <div className="highlights">
+                <h3>Highlights</h3>
+                <div className="highlights-grid">
+                  {(service.highlights && service.highlights.length > 0
+                    ? service.highlights
+                    : ['Verified provider', 'Upfront pricing', 'Top-rated service']
+                  ).map((hl, i) => (
+                    <div key={i} className="highlight-card">
+                      <div className="highlight-icon">⭐</div>
+                      <div className="highlight-text">{hl}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               {/* Provider Section */}
               {provider && (
                 <div className="provider-section">
@@ -201,7 +263,9 @@ const ServiceDetail = () => {
                     </div>
                     <div className="provider-info">
                       <h4 className="provider-name">{provider.name}</h4>
-                      <p className="provider-title">{provider.title || provider.businessName || 'Service Provider'}</p>
+                      <p className="provider-title">
+                        {provider.title || provider.businessName || 'Service Provider'}
+                      </p>
                       <div className="provider-rating">
                         <span className="rating-stars">{renderStars(provider.rating)}</span>
                         <span className="rating-value">{provider.rating || 'No rating'}</span>
@@ -221,7 +285,9 @@ const ServiceDetail = () => {
               <div className="booking-card">
                 <div className="price-section">
                   <span className="price-label">Starting at</span>
-                  <span className="price-value">${service.price || service.startingPrice || 0}</span>
+                  <span className="price-value">
+                    ₹{Number((service.price ?? service.startingPrice) || 0).toLocaleString('en-IN')}
+                  </span>
                   {service.duration && <span className="duration">({service.duration})</span>}
                 </div>
 
@@ -269,9 +335,7 @@ const ServiceDetail = () => {
                           {formatDate(review.createdAt || review.date)}
                         </span>
                       </div>
-                      <div className="review-rating">
-                        {renderStars(review.rating)}
-                      </div>
+                      <div className="review-rating">{renderStars(review.rating)}</div>
                     </div>
                     <p className="review-comment">
                       {review.comment || review.review || 'No comment provided.'}
@@ -285,6 +349,18 @@ const ServiceDetail = () => {
               </div>
             )}
           </div>
+
+          {/* Related Services */}
+          {relatedServices.length > 0 && (
+            <section className="related-section">
+              <h3>Related Services</h3>
+              <div className="related-grid">
+                {relatedServices.map((srv) => (
+                  <ServiceCard key={srv._id || srv.id} service={srv} size="medium" />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       </main>
     </div>

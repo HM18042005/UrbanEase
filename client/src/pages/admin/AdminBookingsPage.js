@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import Header from '../../components/Header';
+import { useEffect, useMemo, useState } from 'react';
+
 import { adminAPI } from '../../api/services';
+import Header from '../../components/Header';
 import './AdminDashboard.css';
 
 /**
  * AdminBookingsPage Component
- * 
+ *
  * What: Booking management interface for administrators
  * When: Admin needs to view, manage, and monitor all platform bookings
  * Why: Provides centralized booking administration with status management
- * 
+ *
  * Features:
  * - Booking list with search and filtering
  * - Booking status management
@@ -30,13 +31,13 @@ const AdminBookingsPage = () => {
   // Booking statistics
   const stats = useMemo(() => {
     const total = bookings.length;
-    const pending = bookings.filter(b => b.status === 'pending').length;
-    const confirmed = bookings.filter(b => b.status === 'confirmed').length;
-    const inProgress = bookings.filter(b => b.status === 'in_progress').length;
-    const completed = bookings.filter(b => b.status === 'completed').length;
-    const cancelled = bookings.filter(b => b.status === 'cancelled').length;
+    const pending = bookings.filter((b) => b.status === 'pending').length;
+    const confirmed = bookings.filter((b) => b.status === 'confirmed').length;
+    const inProgress = bookings.filter((b) => b.status === 'in_progress').length;
+    const completed = bookings.filter((b) => b.status === 'completed').length;
+    const cancelled = bookings.filter((b) => b.status === 'cancelled').length;
     const totalRevenue = bookings
-      .filter(b => b.status === 'completed')
+      .filter((b) => b.status === 'completed')
       .reduce((sum, b) => sum + (b.totalAmount || 0), 0);
 
     return { total, pending, confirmed, inProgress, completed, cancelled, totalRevenue };
@@ -64,11 +65,11 @@ const AdminBookingsPage = () => {
   const handleStatusUpdate = async (bookingId, newStatus) => {
     try {
       await adminAPI.updateBookingStatus(bookingId, newStatus);
-      setBookings(bookings.map(booking => 
-        booking._id === bookingId 
-          ? { ...booking, status: newStatus }
-          : booking
-      ));
+      setBookings(
+        bookings.map((booking) =>
+          booking._id === bookingId ? { ...booking, status: newStatus } : booking
+        )
+      );
     } catch (err) {
       console.error('Error updating booking status:', err);
       setError(err.response?.data?.message || 'Failed to update booking status');
@@ -76,20 +77,20 @@ const AdminBookingsPage = () => {
   };
 
   const filteredBookings = useMemo(() => {
-    return bookings.filter(booking => {
-      const matchesSearch = 
+    return bookings.filter((booking) => {
+      const matchesSearch =
         booking.serviceName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking.providerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         booking._id?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesStatus = statusFilter === 'all' || booking.status === statusFilter;
-      
+
       let matchesDate = true;
       if (dateFilter !== 'all') {
         const bookingDate = new Date(booking.scheduledDate || booking.createdAt);
         const now = new Date();
-        
+
         switch (dateFilter) {
           case 'today':
             matchesDate = bookingDate.toDateString() === now.toDateString();
@@ -106,19 +107,25 @@ const AdminBookingsPage = () => {
             matchesDate = true;
         }
       }
-      
+
       return matchesSearch && matchesStatus && matchesDate;
     });
   }, [bookings, searchTerm, statusFilter, dateFilter]);
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'pending': return '#f59e0b';
-      case 'confirmed': return '#3b82f6';
-      case 'in_progress': return '#8b5cf6';
-      case 'completed': return '#10b981';
-      case 'cancelled': return '#ef4444';
-      default: return '#6b7280';
+      case 'pending':
+        return '#f59e0b';
+      case 'confirmed':
+        return '#3b82f6';
+      case 'in_progress':
+        return '#8b5cf6';
+      case 'completed':
+        return '#10b981';
+      case 'cancelled':
+        return '#ef4444';
+      default:
+        return '#6b7280';
     }
   };
 
@@ -129,14 +136,14 @@ const AdminBookingsPage = () => {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(amount || 0);
   };
 
@@ -180,7 +187,9 @@ const AdminBookingsPage = () => {
               <div className="alert alert-error">
                 <span className="alert-icon">⚠️</span>
                 <span>{error}</span>
-                <button className="alert-close" onClick={() => setError('')}>×</button>
+                <button className="alert-close" onClick={() => setError('')}>
+                  ×
+                </button>
               </div>
             )}
 
@@ -193,7 +202,7 @@ const AdminBookingsPage = () => {
                 </div>
                 <div className="stat-icon">📋</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.pending}</div>
@@ -201,7 +210,7 @@ const AdminBookingsPage = () => {
                 </div>
                 <div className="stat-icon">⏳</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.confirmed}</div>
@@ -209,7 +218,7 @@ const AdminBookingsPage = () => {
                 </div>
                 <div className="stat-icon">✅</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.completed}</div>
@@ -217,7 +226,7 @@ const AdminBookingsPage = () => {
                 </div>
                 <div className="stat-icon">✨</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{formatCurrency(stats.totalRevenue)}</div>
@@ -240,10 +249,10 @@ const AdminBookingsPage = () => {
                   />
                   <span className="search-icon">🔍</span>
                 </div>
-                
+
                 <div className="filter-controls">
-                  <select 
-                    value={statusFilter} 
+                  <select
+                    value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="filter-select"
                   >
@@ -254,9 +263,9 @@ const AdminBookingsPage = () => {
                     <option value="completed">Completed</option>
                     <option value="cancelled">Cancelled</option>
                   </select>
-                  
-                  <select 
-                    value={dateFilter} 
+
+                  <select
+                    value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
                     className="filter-select"
                   >
@@ -265,12 +274,8 @@ const AdminBookingsPage = () => {
                     <option value="week">Last Week</option>
                     <option value="month">Last Month</option>
                   </select>
-                  
-                  <button 
-                    onClick={fetchBookings}
-                    className="refresh-btn"
-                    title="Refresh bookings"
-                  >
+
+                  <button onClick={fetchBookings} className="refresh-btn" title="Refresh bookings">
                     🔄
                   </button>
                 </div>
@@ -282,7 +287,7 @@ const AdminBookingsPage = () => {
               <div className="card-header">
                 <h3>Bookings ({filteredBookings.length})</h3>
               </div>
-              
+
               <div className="table-container">
                 {filteredBookings.length === 0 ? (
                   <div className="empty-state">
@@ -305,21 +310,21 @@ const AdminBookingsPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredBookings.map(booking => (
+                      {filteredBookings.map((booking) => (
                         <tr key={booking._id}>
                           <td>
                             <div className="booking-id">
                               <span className="id-text">#{booking._id?.slice(-8)}</span>
                             </div>
                           </td>
-                          
+
                           <td>
                             <div className="service-info">
                               <div className="service-name">{booking.serviceName || 'N/A'}</div>
                               <div className="service-category">{booking.serviceCategory}</div>
                             </div>
                           </td>
-                          
+
                           <td>
                             <div className="user-info">
                               <div className="user-avatar">
@@ -331,7 +336,7 @@ const AdminBookingsPage = () => {
                               </div>
                             </div>
                           </td>
-                          
+
                           <td>
                             <div className="user-info">
                               <div className="user-avatar">
@@ -343,31 +348,29 @@ const AdminBookingsPage = () => {
                               </div>
                             </div>
                           </td>
-                          
+
                           <td>
-                            <span className="date-text">
-                              {formatDate(booking.scheduledDate)}
-                            </span>
+                            <span className="date-text">{formatDate(booking.scheduledDate)}</span>
                           </td>
-                          
+
                           <td>
                             <span className="amount-text">
                               {formatCurrency(booking.totalAmount)}
                             </span>
                           </td>
-                          
+
                           <td>
-                            <span 
+                            <span
                               className="status-badge"
-                              style={{ 
+                              style={{
                                 backgroundColor: getStatusColor(booking.status),
-                                color: 'white'
+                                color: 'white',
                               }}
                             >
                               {booking.status?.replace('_', ' ')}
                             </span>
                           </td>
-                          
+
                           <td>
                             <div className="action-buttons">
                               <button
@@ -380,7 +383,7 @@ const AdminBookingsPage = () => {
                               >
                                 👁️
                               </button>
-                              
+
                               {booking.status === 'pending' && (
                                 <button
                                   onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
@@ -390,7 +393,7 @@ const AdminBookingsPage = () => {
                                   ✅
                                 </button>
                               )}
-                              
+
                               {booking.status === 'confirmed' && (
                                 <button
                                   onClick={() => handleStatusUpdate(booking._id, 'in_progress')}
@@ -400,7 +403,7 @@ const AdminBookingsPage = () => {
                                   🚀
                                 </button>
                               )}
-                              
+
                               {booking.status === 'in_progress' && (
                                 <button
                                   onClick={() => handleStatusUpdate(booking._id, 'completed')}
@@ -410,7 +413,7 @@ const AdminBookingsPage = () => {
                                   ✨
                                 </button>
                               )}
-                              
+
                               {['pending', 'confirmed'].includes(booking.status) && (
                                 <button
                                   onClick={() => handleStatusUpdate(booking._id, 'cancelled')}
@@ -432,24 +435,40 @@ const AdminBookingsPage = () => {
 
             {/* Booking Detail Modal */}
             {showModal && selectedBooking && (
-              <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                <div className="modal-content user-modal" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="modal-overlay"
+                role="button"
+                tabIndex={0}
+                aria-label="Close modal"
+                onClick={(e) => {
+                  if (e.currentTarget === e.target) setShowModal(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setShowModal(false);
+                  }
+                }}
+              >
+                <div
+                  className="modal-content user-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  tabIndex={-1}
+                >
                   <div className="modal-header">
                     <h3>Booking Details</h3>
-                    <button 
-                      className="modal-close"
-                      onClick={() => setShowModal(false)}
-                    >
+                    <button className="modal-close" onClick={() => setShowModal(false)}>
                       ×
                     </button>
                   </div>
-                  
+
                   <div className="modal-body">
                     <div className="booking-profile">
                       <div className="profile-info">
                         <h4>Booking #{selectedBooking._id?.slice(-8)}</h4>
                         <p className="profile-email">{selectedBooking.serviceName}</p>
-                        <span 
+                        <span
                           className="profile-role"
                           style={{ backgroundColor: getStatusColor(selectedBooking.status) }}
                         >
@@ -457,55 +476,58 @@ const AdminBookingsPage = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="profile-details">
-                      <div className="detail-group">
-                        <label>Service:</label>
-                        <span>{selectedBooking.serviceName || 'N/A'}</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Customer:</label>
-                        <span>{selectedBooking.customerName} ({selectedBooking.customerEmail})</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Provider:</label>
-                        <span>{selectedBooking.providerName} ({selectedBooking.providerEmail})</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Scheduled Date:</label>
-                        <span>{formatDate(selectedBooking.scheduledDate)}</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Amount:</label>
-                        <span>{formatCurrency(selectedBooking.totalAmount)}</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Created:</label>
-                        <span>{formatDate(selectedBooking.createdAt)}</span>
-                      </div>
-                      
-                      {selectedBooking.notes && (
+                      <dl className="detail-list">
                         <div className="detail-group">
-                          <label>Notes:</label>
-                          <span>{selectedBooking.notes}</span>
+                          <dt>Service:</dt>
+                          <dd>{selectedBooking.serviceName || 'N/A'}</dd>
                         </div>
-                      )}
+
+                        <div className="detail-group">
+                          <dt>Customer:</dt>
+                          <dd>
+                            {selectedBooking.customerName} ({selectedBooking.customerEmail})
+                          </dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Provider:</dt>
+                          <dd>
+                            {selectedBooking.providerName} ({selectedBooking.providerEmail})
+                          </dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Scheduled Date:</dt>
+                          <dd>{formatDate(selectedBooking.scheduledDate)}</dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Amount:</dt>
+                          <dd>{formatCurrency(selectedBooking.totalAmount)}</dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Created:</dt>
+                          <dd>{formatDate(selectedBooking.createdAt)}</dd>
+                        </div>
+
+                        {selectedBooking.notes && (
+                          <div className="detail-group">
+                            <dt>Notes:</dt>
+                            <dd>{selectedBooking.notes}</dd>
+                          </div>
+                        )}
+                      </dl>
                     </div>
                   </div>
-                  
+
                   <div className="modal-footer">
-                    <button 
-                      className="btn btn-secondary"
-                      onClick={() => setShowModal(false)}
-                    >
+                    <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
                       Close
                     </button>
-                    
+
                     {selectedBooking.status === 'pending' && (
                       <button
                         onClick={() => {
@@ -517,7 +539,7 @@ const AdminBookingsPage = () => {
                         Confirm Booking
                       </button>
                     )}
-                    
+
                     {['pending', 'confirmed'].includes(selectedBooking.status) && (
                       <button
                         onClick={() => {

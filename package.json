@@ -7,13 +7,23 @@
     "dev": "concurrently \"npm run server\" \"npm run client\"",
     "server": "cd server && npm start",
     "client": "cd client && npm start",
-    "install-deps": "npm install && cd server && npm install && cd ../client && npm install"
+    "install-deps": "npm install && cd server && npm install && cd ../client && npm install",
+    "lint": "npm --prefix client run lint",
+    "lint:fix": "npm --prefix client run lint:fix",
+    "format": "npm --prefix client run format"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.2",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "prettier": "^3.6.2"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",
@@ -23,5 +33,10 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.17.2"
+  },
+  "devServer": {
+    "allowedHosts": [
+      "localhost"
+    ]
   }
 }

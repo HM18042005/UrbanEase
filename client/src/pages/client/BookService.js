@@ -1,16 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Header from '../../components/Header';
+import { useCallback, useEffect, useState } from 'react';
+
+import { useNavigate, useParams } from 'react-router-dom';
+
 import { serviceAPI, bookingAPI } from '../../api/services';
+import Header from '../../components/Header';
 import './BookService.css';
 
 /**
  * BookService Component
- * 
+ *
  * What: Booking form for a specific service
  * When: Accessed when user clicks "Book Now" on service detail page
  * Why: Allows users to book services with date/time selection and details
- * 
+ *
  * Features:
  * - Service information display
  * - Date and time selection
@@ -21,7 +23,7 @@ import './BookService.css';
 const BookService = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
+
   const [service, setService] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -31,15 +33,11 @@ const BookService = () => {
     scheduledTime: '',
     notes: '',
     address: '',
-    contactPhone: ''
+    contactPhone: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchService();
-  }, [id]);
-
-  const fetchService = async () => {
+  const fetchService = useCallback(async () => {
     try {
       setLoading(true);
       const serviceData = await serviceAPI.getService(id);
@@ -50,19 +48,23 @@ const BookService = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    fetchService();
+  }, [fetchService]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setBookingData(prev => ({
+    setBookingData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!bookingData.scheduledDate || !bookingData.scheduledTime || !bookingData.address) {
       alert('Please fill in all required fields');
       return;
@@ -70,18 +72,17 @@ const BookService = () => {
 
     try {
       setSubmitting(true);
-      
+
       const booking = {
         ...bookingData,
         scheduledDateTime: `${bookingData.scheduledDate}T${bookingData.scheduledTime}`,
-        totalAmount: service?.price || 0
+        totalAmount: service?.price || 0,
       };
 
       await bookingAPI.createBooking(booking);
-      
+
       alert('Booking created successfully!');
       navigate('/bookings');
-      
     } catch (err) {
       console.error('Error creating booking:', err);
       alert(err.response?.data?.message || 'Failed to create booking');
@@ -123,7 +124,7 @@ const BookService = () => {
   return (
     <div className="book-service-page">
       <Header />
-      
+
       <main className="book-service-main">
         <div className="container">
           <div className="booking-header">
@@ -140,7 +141,7 @@ const BookService = () => {
                 <h3>{service.title}</h3>
                 <p className="service-category">{service.category}</p>
                 <p className="service-description">{service.description}</p>
-                
+
                 <div className="service-details">
                   <div className="detail-item">
                     <span className="label">Duration:</span>
@@ -162,7 +163,7 @@ const BookService = () => {
             <div className="booking-form-section">
               <form onSubmit={handleSubmit} className="booking-form">
                 <h3>Booking Details</h3>
-                
+
                 <div className="form-group">
                   <label htmlFor="scheduledDate">Preferred Date *</label>
                   <input
@@ -236,11 +237,7 @@ const BookService = () => {
                   </div>
                 </div>
 
-                <button 
-                  type="submit" 
-                  className="submit-btn"
-                  disabled={submitting}
-                >
+                <button type="submit" className="submit-btn" disabled={submitting}>
                   {submitting ? 'Creating Booking...' : 'Confirm Booking'}
                 </button>
               </form>

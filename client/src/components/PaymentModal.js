@@ -1,6 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { createPaymentOrder, verifyPayment, handlePaymentFailure } from '../api/payment';
+import { useState, useEffect } from 'react';
+
+import PropTypes from 'prop-types';
+
 import TestPaymentInfo from './TestPaymentInfo';
+import { createPaymentOrder, verifyPayment, handlePaymentFailure } from '../api/payment';
 import './Payment.css';
 
 const PaymentModal = ({ booking, onSuccess, onClose, onError }) => {
@@ -24,12 +27,14 @@ const PaymentModal = ({ booking, onSuccess, onClose, onError }) => {
       setLoading(true);
       setError('');
 
-      console.log('🧪 TEST MODE: Initiating Razorpay payment for booking:', booking._id);
+      // eslint-disable-next-line no-console
+      console.warn('🧪 TEST MODE: Initiating Razorpay payment for booking:', booking._id);
 
       // Create payment order
       const orderData = await createPaymentOrder(booking._id);
-      
-      console.log('🧪 TEST MODE: Payment order created:', orderData);
+
+      // eslint-disable-next-line no-console
+      console.warn('🧪 TEST MODE: Payment order created:', orderData);
 
       const options = {
         key: process.env.REACT_APP_RAZORPAY_KEY_ID || 'rzp_test_WZ4f4HELxyaDr3', // Test key
@@ -41,49 +46,50 @@ const PaymentModal = ({ booking, onSuccess, onClose, onError }) => {
         prefill: {
           name: booking.customerName,
           email: booking.customerEmail,
-          contact: booking.customerPhone || ''
+          contact: booking.customerPhone || '',
         },
         theme: {
-          color: '#3b82f6'
+          color: '#3b82f6',
         },
         modal: {
           escape: false,
           animation: true,
-          ondismiss: function() {
+          ondismiss: function () {
             setLoading(false);
-          }
+          },
         },
         retry: {
           enabled: true,
-          max_count: 1
+          max_count: 1,
         },
-        handler: async function(response) {
+        handler: async function (response) {
           try {
             // Verify payment on backend
             const verificationData = {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
-              bookingId: booking._id
+              bookingId: booking._id,
             };
 
             const result = await verifyPayment(verificationData);
-            
+
             if (result.success) {
               onSuccess(result);
             } else {
               onError('Payment verification failed');
             }
           } catch (error) {
+            // eslint-disable-next-line no-console
             console.error('Payment verification error:', error);
             onError(error.message || 'Payment verification failed');
           }
-        }
+        },
       };
 
       const razorpay = new window.Razorpay(options);
-      
-      razorpay.on('payment.failed', async function(response) {
+
+      razorpay.on('payment.failed', async function (response) {
         try {
           await handlePaymentFailure(booking._id, response.error);
           onError(`Payment failed: ${response.error.description}`);
@@ -93,8 +99,8 @@ const PaymentModal = ({ booking, onSuccess, onClose, onError }) => {
       });
 
       razorpay.open();
-      
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error('Payment initialization error:', error);
       setError(error.message || 'Failed to initialize payment');
       onError(error.message || 'Failed to initialize payment');
@@ -108,7 +114,9 @@ const PaymentModal = ({ booking, onSuccess, onClose, onError }) => {
       <div className="payment-modal">
         <div className="payment-modal-header">
           <h3>Complete Payment</h3>
-          <button className="close-button" onClick={onClose}>×</button>
+          <button className="close-button" onClick={onClose}>
+            ×
+          </button>
         </div>
 
         <div className="payment-modal-body">
@@ -142,18 +150,10 @@ const PaymentModal = ({ booking, onSuccess, onClose, onError }) => {
           )}
 
           <div className="payment-actions">
-            <button 
-              className="cancel-button" 
-              onClick={onClose}
-              disabled={loading}
-            >
+            <button className="cancel-button" onClick={onClose} disabled={loading}>
               Cancel
             </button>
-            <button 
-              className="pay-button" 
-              onClick={handlePayment}
-              disabled={loading}
-            >
+            <button className="pay-button" onClick={handlePayment} disabled={loading}>
               {loading ? (
                 <>
                   <span className="loading-spinner"></span>
@@ -171,3 +171,20 @@ const PaymentModal = ({ booking, onSuccess, onClose, onError }) => {
 };
 
 export default PaymentModal;
+
+PaymentModal.propTypes = {
+  booking: PropTypes.shape({
+    _id: PropTypes.string,
+    serviceName: PropTypes.string,
+    providerName: PropTypes.string,
+    date: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date)]),
+    customerName: PropTypes.string,
+    customerEmail: PropTypes.string,
+    customerPhone: PropTypes.string,
+    totalAmount: PropTypes.number,
+    servicePrice: PropTypes.number,
+  }).isRequired,
+  onSuccess: PropTypes.func.isRequired,
+  onClose: PropTypes.func.isRequired,
+  onError: PropTypes.func.isRequired,
+};

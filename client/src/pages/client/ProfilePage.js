@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+
+import * as Auth from '../../api/auth';
 import Header from '../../components/Header';
 import { useAuth } from '../../context/AuthContext';
-import * as Auth from '../../api/auth';
 import './ProfilePage.css';
 
 const ProfilePage = () => {
@@ -17,7 +18,7 @@ const ProfilePage = () => {
     city: '',
     state: '',
     zipCode: '',
-    dateOfBirth: ''
+    dateOfBirth: '',
   });
 
   // Load user profile data when component mounts
@@ -35,7 +36,7 @@ const ProfilePage = () => {
           city: userData.city || '',
           state: userData.state || '',
           zipCode: userData.zipCode || '',
-          dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : ''
+          dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : '',
         });
       } catch (error) {
         console.error('Failed to load profile:', error);
@@ -51,9 +52,9 @@ const ProfilePage = () => {
   }, [user]);
 
   const handleInputChange = (field, value) => {
-    setProfileData(prev => ({
+    setProfileData((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
   };
 
@@ -65,7 +66,7 @@ const ProfilePage = () => {
       setIsEditing(false);
       // Update local state with server response
       const userData = response.user;
-      setProfileData(prev => ({
+      setProfileData((prev) => ({
         ...prev,
         name: userData.name || '',
         email: userData.email || '',
@@ -74,7 +75,7 @@ const ProfilePage = () => {
         city: userData.city || '',
         state: userData.state || '',
         zipCode: userData.zipCode || '',
-        dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : ''
+        dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : '',
       }));
       alert('Profile updated successfully!');
     } catch (error) {
@@ -88,23 +89,28 @@ const ProfilePage = () => {
     <div className="profile-section">
       <div className="section-header">
         <h3>Personal Information</h3>
-        <button 
+        <button
           className={`edit-btn ${isEditing ? 'save' : 'edit'}`}
           onClick={isEditing ? handleSave : () => setIsEditing(true)}
           disabled={loading}
         >
-          {loading ? 'Saving...' : (isEditing ? 'Save Changes' : 'Edit Profile')}
+          {loading ? 'Saving...' : isEditing ? 'Save Changes' : 'Edit Profile'}
         </button>
       </div>
 
-      {error && <div className="error-message" style={{color: 'red', marginBottom: '1rem'}}>{error}</div>}
+      {error && (
+        <div className="error-message" style={{ color: 'red', marginBottom: '1rem' }}>
+          {error}
+        </div>
+      )}
 
       <div className="form-grid">
         <div className="form-group">
-          <label>Name</label>
+          <label htmlFor="name">Name</label>
           {isEditing ? (
             <input
               type="text"
+              id="name"
               value={profileData.name}
               onChange={(e) => handleInputChange('name', e.target.value)}
             />
@@ -114,10 +120,11 @@ const ProfilePage = () => {
         </div>
 
         <div className="form-group">
-          <label>Email</label>
+          <label htmlFor="email">Email</label>
           {isEditing ? (
             <input
               type="email"
+              id="email"
               value={profileData.email}
               onChange={(e) => handleInputChange('email', e.target.value)}
             />
@@ -127,10 +134,11 @@ const ProfilePage = () => {
         </div>
 
         <div className="form-group">
-          <label>Phone</label>
+          <label htmlFor="phone">Phone</label>
           {isEditing ? (
             <input
               type="tel"
+              id="phone"
               value={profileData.phone}
               onChange={(e) => handleInputChange('phone', e.target.value)}
             />
@@ -140,38 +148,45 @@ const ProfilePage = () => {
         </div>
 
         <div className="form-group">
-          <label>Date of Birth</label>
+          <label htmlFor="dateOfBirth">Date of Birth</label>
           {isEditing ? (
             <input
               type="date"
+              id="dateOfBirth"
               value={profileData.dateOfBirth}
               onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
             />
           ) : (
             <span className="form-value">
-              {profileData.dateOfBirth ? new Date(profileData.dateOfBirth).toLocaleDateString() : 'Not provided'}
+              {profileData.dateOfBirth
+                ? new Date(profileData.dateOfBirth).toLocaleDateString()
+                : 'Not provided'}
             </span>
           )}
         </div>
 
         <div className="form-group full-width">
-          <label>Address</label>
+          <label htmlFor="address">Address</label>
           {isEditing ? (
             <input
               type="text"
+              id="address"
               value={profileData.address}
               onChange={(e) => handleInputChange('address', e.target.value)}
             />
           ) : (
-            <span className="form-value">{profileData.address || 'Not provided'}</span>
+            <span className="form-value" id="addressValue">
+              {profileData.address || 'Not provided'}
+            </span>
           )}
         </div>
 
         <div className="form-group">
-          <label>City</label>
+          <label htmlFor="city">City</label>
           {isEditing ? (
             <input
               type="text"
+              id="city"
               value={profileData.city}
               onChange={(e) => handleInputChange('city', e.target.value)}
             />
@@ -181,10 +196,11 @@ const ProfilePage = () => {
         </div>
 
         <div className="form-group">
-          <label>State</label>
+          <label htmlFor="state">State</label>
           {isEditing ? (
             <input
               type="text"
+              id="state"
               value={profileData.state}
               onChange={(e) => handleInputChange('state', e.target.value)}
             />
@@ -194,10 +210,11 @@ const ProfilePage = () => {
         </div>
 
         <div className="form-group">
-          <label>Zip Code</label>
+          <label htmlFor="zipCode">Zip Code</label>
           {isEditing ? (
             <input
               type="text"
+              id="zipCode"
               value={profileData.zipCode}
               onChange={(e) => handleInputChange('zipCode', e.target.value)}
             />
@@ -212,7 +229,7 @@ const ProfilePage = () => {
   return (
     <div className="profile-page">
       <Header />
-      
+
       <div className="profile-container">
         <div className="profile-header">
           <h1>My Profile</h1>
@@ -220,12 +237,10 @@ const ProfilePage = () => {
         </div>
 
         {loading && !isEditing && (
-          <div style={{textAlign: 'center', padding: '2rem'}}>Loading profile...</div>
+          <div style={{ textAlign: 'center', padding: '2rem' }}>Loading profile...</div>
         )}
 
-        <div className="profile-content">
-          {!loading && renderPersonalInfo()}
-        </div>
+        <div className="profile-content">{!loading && renderPersonalInfo()}</div>
       </div>
     </div>
   );

@@ -11,7 +11,8 @@ const {
   getServiceStats,
   searchServices,
   getFeaturedServices,
-  getPopularServices
+  getPopularServices,
+  advancedSearch
 } = require('../controllers/serviceController');
 const { protect, restrictTo } = require('../middleware/auth');
 
@@ -21,6 +22,7 @@ const router = express.Router();
 router.get('/', getServices);
 router.get('/categories', getCategories);
 router.get('/search', searchServices);
+router.post('/advanced-search', advancedSearch);
 router.get('/featured', getFeaturedServices);
 router.get('/popular', getPopularServices);
 router.get('/:id', getService);

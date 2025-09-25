@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import Header from '../../components/Header';
+import { useEffect, useMemo, useState } from 'react';
+
 import { adminAPI } from '../../api/services';
+import Header from '../../components/Header';
 import './AdminDashboard.css';
 
 /**
  * AdminReviewsPage Component
- * 
+ *
  * What: Review management interface for administrators
  * When: Admin needs to moderate, monitor, and manage platform reviews
  * Why: Ensures quality control and maintains platform reputation
- * 
+ *
  * Features:
  * - Review list with search and filtering
  * - Review moderation (approve/reject/flag)
@@ -29,16 +30,16 @@ const AdminReviewsPage = () => {
 
   // Review statistics
   const stats = useMemo(() => {
-    if (!Array.isArray(reviews)) return { total: 0, pending: 0, approved: 0, flagged: 0, rejected: 0, avgRating: 0 };
-    
+    if (!Array.isArray(reviews))
+      return { total: 0, pending: 0, approved: 0, flagged: 0, rejected: 0, avgRating: 0 };
+
     const total = reviews.length;
-    const pending = reviews.filter(r => r.status === 'pending').length;
-    const approved = reviews.filter(r => r.status === 'approved').length;
-    const flagged = reviews.filter(r => r.status === 'flagged').length;
-    const rejected = reviews.filter(r => r.status === 'rejected').length;
-    const avgRating = reviews.length > 0 
-      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length 
-      : 0;
+    const pending = reviews.filter((r) => r.status === 'pending').length;
+    const approved = reviews.filter((r) => r.status === 'approved').length;
+    const flagged = reviews.filter((r) => r.status === 'flagged').length;
+    const rejected = reviews.filter((r) => r.status === 'rejected').length;
+    const avgRating =
+      reviews.length > 0 ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length : 0;
 
     return { total, pending, approved, flagged, rejected, avgRating };
   }, [reviews]);
@@ -51,11 +52,11 @@ const AdminReviewsPage = () => {
     try {
       setLoading(true);
       setError('');
-      
+
       // Fetch real reviews data from API
       const response = await adminAPI.getAllReviews();
       const reviewsData = response?.data || response?.reviews || response || [];
-      
+
       // Ensure we always set an array
       setReviews(Array.isArray(reviewsData) ? reviewsData : []);
     } catch (err) {
@@ -86,13 +87,13 @@ const AdminReviewsPage = () => {
 
       // Update review status via API
       await adminAPI.updateReviewStatus(reviewId, newStatus);
-      
+
       // Update local state
-      setReviews(reviews.map(review => 
-        review._id === reviewId 
-          ? { ...review, status: newStatus }
-          : review
-      ));
+      setReviews(
+        reviews.map((review) =>
+          review._id === reviewId ? { ...review, status: newStatus } : review
+        )
+      );
     } catch (err) {
       console.error('Error updating review:', err);
       setError(err.response?.data?.message || 'Failed to update review');
@@ -101,28 +102,33 @@ const AdminReviewsPage = () => {
 
   const filteredReviews = useMemo(() => {
     if (!Array.isArray(reviews)) return [];
-    
-    return reviews.filter(review => {
-      const matchesSearch = 
+
+    return reviews.filter((review) => {
+      const matchesSearch =
         review.comment?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         review.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         review.serviceName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         review.providerName?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesRating = ratingFilter === 'all' || review.rating.toString() === ratingFilter;
       const matchesStatus = statusFilter === 'all' || review.status === statusFilter;
-      
+
       return matchesSearch && matchesRating && matchesStatus;
     });
   }, [reviews, searchTerm, ratingFilter, statusFilter]);
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'approved': return '#10b981';
-      case 'pending': return '#f59e0b';
-      case 'flagged': return '#ef4444';
-      case 'rejected': return '#6b7280';
-      default: return '#6b7280';
+      case 'approved':
+        return '#10b981';
+      case 'pending':
+        return '#f59e0b';
+      case 'flagged':
+        return '#ef4444';
+      case 'rejected':
+        return '#6b7280';
+      default:
+        return '#6b7280';
     }
   };
 
@@ -137,7 +143,7 @@ const AdminReviewsPage = () => {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
@@ -181,7 +187,9 @@ const AdminReviewsPage = () => {
               <div className="alert alert-error">
                 <span className="alert-icon">⚠️</span>
                 <span>{error}</span>
-                <button className="alert-close" onClick={() => setError('')}>×</button>
+                <button className="alert-close" onClick={() => setError('')}>
+                  ×
+                </button>
               </div>
             )}
 
@@ -194,7 +202,7 @@ const AdminReviewsPage = () => {
                 </div>
                 <div className="stat-icon">⭐</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.pending}</div>
@@ -202,7 +210,7 @@ const AdminReviewsPage = () => {
                 </div>
                 <div className="stat-icon">⏳</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.approved}</div>
@@ -210,7 +218,7 @@ const AdminReviewsPage = () => {
                 </div>
                 <div className="stat-icon">✅</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.flagged}</div>
@@ -218,7 +226,7 @@ const AdminReviewsPage = () => {
                 </div>
                 <div className="stat-icon">🚨</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.avgRating.toFixed(1)}⭐</div>
@@ -241,10 +249,10 @@ const AdminReviewsPage = () => {
                   />
                   <span className="search-icon">🔍</span>
                 </div>
-                
+
                 <div className="filter-controls">
-                  <select 
-                    value={ratingFilter} 
+                  <select
+                    value={ratingFilter}
                     onChange={(e) => setRatingFilter(e.target.value)}
                     className="filter-select"
                   >
@@ -255,9 +263,9 @@ const AdminReviewsPage = () => {
                     <option value="2">2 Stars</option>
                     <option value="1">1 Star</option>
                   </select>
-                  
-                  <select 
-                    value={statusFilter} 
+
+                  <select
+                    value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="filter-select"
                   >
@@ -267,12 +275,8 @@ const AdminReviewsPage = () => {
                     <option value="flagged">Flagged</option>
                     <option value="rejected">Rejected</option>
                   </select>
-                  
-                  <button 
-                    onClick={fetchReviews}
-                    className="refresh-btn"
-                    title="Refresh reviews"
-                  >
+
+                  <button onClick={fetchReviews} className="refresh-btn" title="Refresh reviews">
                     🔄
                   </button>
                 </div>
@@ -284,7 +288,7 @@ const AdminReviewsPage = () => {
               <div className="card-header">
                 <h3>Reviews ({filteredReviews.length})</h3>
               </div>
-              
+
               <div className="table-container">
                 {filteredReviews.length === 0 ? (
                   <div className="empty-state">
@@ -307,7 +311,7 @@ const AdminReviewsPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredReviews.map(review => (
+                      {filteredReviews.map((review) => (
                         <tr key={review._id}>
                           <td>
                             <div className="rating-display">
@@ -315,17 +319,17 @@ const AdminReviewsPage = () => {
                               <span className="rating-number">({review.rating})</span>
                             </div>
                           </td>
-                          
+
                           <td>
                             <div className="review-content">
                               <p className="review-text">
-                                {review.comment?.length > 80 
-                                  ? `${review.comment.substring(0, 80)}...` 
+                                {review.comment?.length > 80
+                                  ? `${review.comment.substring(0, 80)}...`
                                   : review.comment}
                               </p>
                             </div>
                           </td>
-                          
+
                           <td>
                             <div className="user-info">
                               <div className="user-avatar">
@@ -337,13 +341,13 @@ const AdminReviewsPage = () => {
                               </div>
                             </div>
                           </td>
-                          
+
                           <td>
                             <div className="service-info">
                               <span className="service-name">{review.serviceName}</span>
                             </div>
                           </td>
-                          
+
                           <td>
                             <div className="user-info">
                               <div className="user-avatar">
@@ -355,25 +359,23 @@ const AdminReviewsPage = () => {
                               </div>
                             </div>
                           </td>
-                          
+
                           <td>
-                            <span className="date-text">
-                              {formatDate(review.createdAt)}
-                            </span>
+                            <span className="date-text">{formatDate(review.createdAt)}</span>
                           </td>
-                          
+
                           <td>
-                            <span 
+                            <span
                               className="status-badge"
-                              style={{ 
+                              style={{
                                 backgroundColor: getStatusColor(review.status),
-                                color: 'white'
+                                color: 'white',
                               }}
                             >
                               {review.status}
                             </span>
                           </td>
-                          
+
                           <td>
                             <div className="action-buttons">
                               <button
@@ -386,7 +388,7 @@ const AdminReviewsPage = () => {
                               >
                                 👁️
                               </button>
-                              
+
                               {review.status === 'pending' && (
                                 <>
                                   <button
@@ -405,7 +407,7 @@ const AdminReviewsPage = () => {
                                   </button>
                                 </>
                               )}
-                              
+
                               {review.status !== 'flagged' && (
                                 <button
                                   onClick={() => handleReviewAction(review._id, 'flag')}
@@ -427,24 +429,42 @@ const AdminReviewsPage = () => {
 
             {/* Review Detail Modal */}
             {showModal && selectedReview && (
-              <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                <div className="modal-content user-modal" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="modal-overlay"
+                role="button"
+                tabIndex={0}
+                aria-label="Close modal"
+                onClick={(e) => {
+                  if (e.currentTarget === e.target) setShowModal(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setShowModal(false);
+                  }
+                }}
+              >
+                <div
+                  className="modal-content user-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  tabIndex={-1}
+                >
                   <div className="modal-header">
                     <h3>Review Details</h3>
-                    <button 
-                      className="modal-close"
-                      onClick={() => setShowModal(false)}
-                    >
+                    <button className="modal-close" onClick={() => setShowModal(false)}>
                       ×
                     </button>
                   </div>
-                  
+
                   <div className="modal-body">
                     <div className="review-profile">
                       <div className="profile-info">
-                        <h4>{renderStars(selectedReview.rating)} ({selectedReview.rating}/5)</h4>
+                        <h4>
+                          {renderStars(selectedReview.rating)} ({selectedReview.rating}/5)
+                        </h4>
                         <p className="profile-email">{selectedReview.serviceName}</p>
-                        <span 
+                        <span
                           className="profile-role"
                           style={{ backgroundColor: getStatusColor(selectedReview.status) }}
                         >
@@ -452,43 +472,46 @@ const AdminReviewsPage = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="profile-details">
-                      <div className="detail-group">
-                        <label>Review Comment:</label>
-                        <span>{selectedReview.comment}</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Customer:</label>
-                        <span>{selectedReview.customerName} ({selectedReview.customerEmail})</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Service:</label>
-                        <span>{selectedReview.serviceName}</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Provider:</label>
-                        <span>{selectedReview.providerName} ({selectedReview.providerEmail})</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Date:</label>
-                        <span>{formatDate(selectedReview.createdAt)}</span>
-                      </div>
+                      <dl className="detail-list">
+                        <div className="detail-group">
+                          <dt>Review Comment:</dt>
+                          <dd>{selectedReview.comment}</dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Customer:</dt>
+                          <dd>
+                            {selectedReview.customerName} ({selectedReview.customerEmail})
+                          </dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Service:</dt>
+                          <dd>{selectedReview.serviceName}</dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Provider:</dt>
+                          <dd>
+                            {selectedReview.providerName} ({selectedReview.providerEmail})
+                          </dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Date:</dt>
+                          <dd>{formatDate(selectedReview.createdAt)}</dd>
+                        </div>
+                      </dl>
                     </div>
                   </div>
-                  
+
                   <div className="modal-footer">
-                    <button 
-                      className="btn btn-secondary"
-                      onClick={() => setShowModal(false)}
-                    >
+                    <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
                       Close
                     </button>
-                    
+
                     {selectedReview.status === 'pending' && (
                       <>
                         <button
@@ -511,7 +534,7 @@ const AdminReviewsPage = () => {
                         </button>
                       </>
                     )}
-                    
+
                     {selectedReview.status !== 'flagged' && (
                       <button
                         onClick={() => {

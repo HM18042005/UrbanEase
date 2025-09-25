@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
+
+import { Link, useNavigate } from 'react-router-dom';
+
 import { useAuth } from '../../context/AuthContext';
+import { getDefaultRedirectPath } from '../../utils/roleUtils';
 import './Auth.css';
 
-export default function LoginPage() {
+const LoginPage = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -16,8 +19,11 @@ export default function LoginPage() {
     setError('');
     setLoading(true);
     try {
-      await login(email, password);
-      navigate('/home');
+      const loginResult = await login(email, password);
+      // Get the user role from login result or context
+      const userRole = loginResult?.user?.role || 'customer';
+      const redirectPath = getDefaultRedirectPath(userRole);
+      navigate(redirectPath);
     } catch (err) {
       setError(err?.response?.data?.message || 'Sign in failed');
     } finally {
@@ -34,30 +40,40 @@ export default function LoginPage() {
             <h1 className="auth-title">Sign In</h1>
             <p className="auth-subtitle">Continue to access your dashboard</p>
           </div>
-          <div className="auth-divider"><span>or</span></div>
+          <div className="auth-divider">
+            <span>or</span>
+          </div>
 
           {error && <div className="auth-error">{error}</div>}
 
           <form className="auth-form" onSubmit={onSubmit}>
-            <label className="auth-label">Email</label>
+            <label className="auth-label" htmlFor="email">
+              Email
+            </label>
             <input
               type="email"
               className="auth-input"
               placeholder="Enter your email"
               value={email}
+              id="email"
               onChange={(e) => setEmail(e.target.value)}
               required
             />
 
             <div className="auth-row">
-              <label className="auth-label">Password</label>
-              <Link to="/forgot" className="auth-link">Forgot Password?</Link>
+              <label className="auth-label" htmlFor="password">
+                Password
+              </label>
+              <Link to="/forgot" className="auth-link">
+                Forgot Password?
+              </Link>
             </div>
             <input
               type="password"
               className="auth-input"
               placeholder="Enter your password"
               value={password}
+              id="password"
               onChange={(e) => setPassword(e.target.value)}
               required
             />
@@ -69,7 +85,9 @@ export default function LoginPage() {
 
           <div className="auth-footer">
             <span>New here?</span>
-            <Link to="/register" className="auth-link">Create an account</Link>
+            <Link to="/register" className="auth-link">
+              Create an account
+            </Link>
           </div>
         </div>
 
@@ -79,4 +97,6 @@ export default function LoginPage() {
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

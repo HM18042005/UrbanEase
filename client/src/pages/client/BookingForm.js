@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+
 import { useParams, useNavigate } from 'react-router-dom';
-import Header from '../../components/Header';
+
 import { serviceAPI, bookingAPI } from '../../api/services';
+import Header from '../../components/Header';
 import { useAuth } from '../../context/AuthContext';
 import './BookingForm.css';
 
 /**
  * BookingForm Component
- * 
+ *
  * What: Form for booking a specific service
  * When: Accessed when user clicks "Book Now" on service detail page
  * Why: Enables users to create bookings for services
@@ -20,34 +22,42 @@ const BookingForm = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  
+
   // Form state
   const [formData, setFormData] = useState({
     date: '',
     time: '',
     notes: '',
-    address: ''
+    address: '',
   });
 
   const fetchService = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('BookingForm - Fetching service with ID:', id);
-      
+
+      if (process.env.NODE_ENV === 'development') {
+        // Debug logging only in development
+        // eslint-disable-next-line no-console
+        console.debug('BookingForm - Fetching service with ID:', id);
+      }
+
       if (!id || id === 'undefined') {
         setError('Invalid service ID');
         return;
       }
-      
+
       const serviceData = await serviceAPI.getService(id);
-      console.log('BookingForm - Service data received:', serviceData);
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.debug('BookingForm - Service data received:', serviceData);
+      }
       setService(serviceData);
     } catch (err) {
       console.error('Error fetching service:', err);
       console.error('Error details:', err.response?.data);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to load service details';
+      const errorMessage =
+        err.response?.data?.message || err.message || 'Failed to load service details';
       setError(`Server error: ${errorMessage}`);
     } finally {
       setLoading(false);
@@ -60,9 +70,9 @@ const BookingForm = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -70,7 +80,7 @@ const BookingForm = () => {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    
+
     // Check if user is authenticated
     if (!user) {
       setError('Please log in to book a service');
@@ -78,33 +88,51 @@ const BookingForm = () => {
       navigate('/login');
       return;
     }
-    
+
     // Check if token is missing and try to get one from the server
     let token = localStorage.getItem('token');
-    console.log('Initial token check:', { token: token ? 'Present' : 'Missing', tokenLength: token?.length });
-    
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.debug('Initial token check:', {
+        token: token ? 'Present' : 'Missing',
+        tokenLength: token?.length,
+      });
+    }
+
     if (!token) {
       try {
-        console.log('Token missing, attempting to get fresh token from server...');
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.debug('Token missing, attempting to get fresh token from server...');
+        }
         // Call the auth/me endpoint to get current user and potentially a fresh token
         const response = await fetch('http://localhost:5000/api/auth/me', {
           method: 'GET',
           credentials: 'include',
           headers: {
-            'Content-Type': 'application/json'
-          }
+            'Content-Type': 'application/json',
+          },
         });
-        
+
         if (response.ok) {
           const authData = await response.json();
-          console.log('Auth response:', authData);
-          
+          if (process.env.NODE_ENV === 'development') {
+            // eslint-disable-next-line no-console
+            console.debug('Auth response:', authData);
+          }
+
           if (authData.token) {
             localStorage.setItem('token', authData.token);
             token = authData.token;
-            console.log('Fresh token obtained and stored');
+            if (process.env.NODE_ENV === 'development') {
+              // eslint-disable-next-line no-console
+              console.debug('Fresh token obtained and stored');
+            }
           } else {
-            console.log('No token in auth response, relying on cookies');
+            if (process.env.NODE_ENV === 'development') {
+              // eslint-disable-next-line no-console
+              console.debug('No token in auth response, relying on cookies');
+            }
           }
         } else {
           throw new Error(`Auth check failed: ${response.status}`);
@@ -114,54 +142,73 @@ const BookingForm = () => {
         setError('Authentication failed. Please log in again.');
         setSubmitting(false);
         setTimeout(() => {
-          navigate('/login', { 
-            state: { 
+          navigate('/login', {
+            state: {
               from: `/book-service/${id}`,
-              message: 'Please log in to book this service'
-            } 
+              message: 'Please log in to book this service',
+            },
           });
         }, 2000);
         return;
       }
     }
-    
-    console.log('Final token status:', { token: token ? 'Present' : 'Missing' });
-    console.log('Proceeding with booking creation...');
-    
+
+    if (process.env.NODE_ENV === 'development') {
+      // eslint-disable-next-line no-console
+      console.debug('Final token status:', { token: token ? 'Present' : 'Missing' });
+      // eslint-disable-next-line no-console
+      console.debug('Proceeding with booking creation...');
+    }
+
     // Validate required fields
     if (!formData.date || !formData.time || !formData.address) {
       setError('Please fill in all required fields (Date, Time, and Address)');
       setSubmitting(false);
       return;
     }
-    
+
     try {
       const bookingData = {
         serviceId: id,
         date: `${formData.date}T${formData.time}`,
         address: formData.address,
-        notes: formData.notes
+        notes: formData.notes,
       };
-      
-      console.log('Submitting booking data:', bookingData);
-      console.log('Current user:', user);
-      console.log('Token being sent:', localStorage.getItem('token') ? 'Present' : 'Missing');
-      console.log('API Client withCredentials:', true);
-      
+
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.debug('Submitting booking data:', bookingData);
+        // eslint-disable-next-line no-console
+        console.debug('Current user:', user);
+        // eslint-disable-next-line no-console
+        console.debug('Token being sent:', localStorage.getItem('token') ? 'Present' : 'Missing');
+        // eslint-disable-next-line no-console
+        console.debug('API Client withCredentials:', true);
+      }
+
       // Test token validity before booking
       try {
-        console.log('Testing token validity...');
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.debug('Testing token validity...');
+        }
         const authTest = await fetch('http://localhost:5000/api/auth/me', {
           method: 'GET',
           credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
-          }
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
+          },
         });
-        console.log('Auth test result:', authTest.status, authTest.ok);
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.debug('Auth test result:', authTest.status, authTest.ok);
+        }
         if (!authTest.ok) {
-          console.log('Token invalid, clearing and retrying...');
+          if (process.env.NODE_ENV === 'development') {
+            // eslint-disable-next-line no-console
+            console.debug('Token invalid, clearing and retrying...');
+          }
           localStorage.removeItem('token');
           throw new Error('Token expired');
         }
@@ -172,44 +219,59 @@ const BookingForm = () => {
         navigate('/login');
         return;
       }
-      
+
       // Try booking with direct fetch call instead of axios
-      console.log('Attempting booking with direct fetch...');
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.debug('Attempting booking with direct fetch...');
+      }
       try {
         const bookingResponse = await fetch('http://localhost:5000/api/bookings', {
           method: 'POST',
           credentials: 'include',
           headers: {
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            'Content-Type': 'application/json'
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json',
           },
-          body: JSON.stringify(bookingData)
+          body: JSON.stringify(bookingData),
         });
-        
-        console.log('Direct fetch booking result:', bookingResponse.status, bookingResponse.ok);
-        
+
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.debug('Direct fetch booking result:', bookingResponse.status, bookingResponse.ok);
+        }
+
         if (!bookingResponse.ok) {
           const errorData = await bookingResponse.json();
           throw new Error(errorData.message || `Booking failed: ${bookingResponse.status}`);
         }
-        
+
         const result = await bookingResponse.json();
-        console.log('Booking created via fetch:', result);
-        
-        navigate('/bookings', { 
-          state: { message: 'Booking created successfully!' }
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.debug('Booking created via fetch:', result);
+        }
+
+        navigate('/bookings', {
+          state: { message: 'Booking created successfully!' },
         });
         return;
       } catch (fetchError) {
         console.error('Direct fetch booking failed:', fetchError);
-        console.log('Falling back to axios...');
+        if (process.env.NODE_ENV === 'development') {
+          // eslint-disable-next-line no-console
+          console.debug('Falling back to axios...');
+        }
       }
-      
+
       const result = await bookingAPI.createBooking(bookingData);
-      console.log('Booking created:', result);
-      
-      navigate('/bookings', { 
-        state: { message: 'Booking created successfully!' }
+      if (process.env.NODE_ENV === 'development') {
+        // eslint-disable-next-line no-console
+        console.debug('Booking created:', result);
+      }
+
+      navigate('/bookings', {
+        state: { message: 'Booking created successfully!' },
       });
     } catch (err) {
       console.error('Error creating booking:', err);
@@ -243,9 +305,7 @@ const BookingForm = () => {
             <div className="error-container">
               <h2>Failed to Load Service</h2>
               <p>{error}</p>
-              <button onClick={() => navigate('/services')}>
-                Back to Services
-              </button>
+              <button onClick={() => navigate('/services')}>Back to Services</button>
             </div>
           </div>
         </main>
@@ -259,15 +319,12 @@ const BookingForm = () => {
       <main className="service-main">
         <div className="container">
           <div className="service-content">
-            <button 
-              className="back-button"
-              onClick={() => navigate(`/service/${id}`)}
-            >
+            <button className="back-button" onClick={() => navigate(`/service/${id}`)}>
               ← Back to Service
             </button>
-            
+
             <h1>Book Service: {service?.title}</h1>
-            
+
             <div className="booking-layout">
               {/* Service Summary */}
               <div className="service-summary">
@@ -289,22 +346,27 @@ const BookingForm = () => {
               {/* Booking Form */}
               <div className="booking-form-container">
                 <h3>Booking Information</h3>
-                
+
                 {/* Debug Info */}
                 {process.env.NODE_ENV === 'development' && (
-                  <div style={{ 
-                    padding: '10px', 
-                    backgroundColor: '#f0f8ff', 
-                    border: '1px solid #ccc', 
-                    marginBottom: '20px',
-                    borderRadius: '4px'
-                  }}>
-                    <strong>Debug Info:</strong><br/>
-                    User: {user ? `${user.name} (${user.email}) - Role: ${user.role}` : 'Not logged in'}<br/>
+                  <div
+                    style={{
+                      padding: '10px',
+                      backgroundColor: '#f0f8ff',
+                      border: '1px solid #ccc',
+                      marginBottom: '20px',
+                      borderRadius: '4px',
+                    }}
+                  >
+                    <strong>Debug Info:</strong>
+                    <br />
+                    User:{' '}
+                    {user ? `${user.name} (${user.email}) - Role: ${user.role}` : 'Not logged in'}
+                    <br />
                     Token: {localStorage.getItem('token') ? 'Present' : 'Missing'}
                   </div>
                 )}
-                
+
                 <form onSubmit={handleSubmit} className="booking-form">
                   <div className="form-group">
                     <label htmlFor="date">Preferred Date *</label>
@@ -356,11 +418,7 @@ const BookingForm = () => {
                     />
                   </div>
 
-                  {error && (
-                    <div className="error-message">
-                      {error}
-                    </div>
-                  )}
+                  {error && <div className="error-message">{error}</div>}
 
                   <div className="form-actions">
                     <button
@@ -370,11 +428,7 @@ const BookingForm = () => {
                     >
                       Cancel
                     </button>
-                    <button
-                      type="submit"
-                      className="submit-button"
-                      disabled={submitting}
-                    >
+                    <button type="submit" className="submit-button" disabled={submitting}>
                       {submitting ? 'Creating Booking...' : 'Book Now'}
                     </button>
                   </div>

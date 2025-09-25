@@ -1,14 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import Header from '../../components/Header';
+import { useCallback, useEffect, useState } from 'react';
+
+import { useSearchParams } from 'react-router-dom';
+
+import {
+  getBookingBasedConversations,
+  getMessages as getConversationMessages,
+  markMessagesAsRead,
+} from '../../api/services';
 import ChatWindow from '../../components/ChatWindow';
-import { api } from '../../api/provider';
-import './Dashboard.css';
+import Header from '../../components/Header';
+import '../client/MessagesPage.css';
+import { useSocket } from '../../contexts/SocketContext';
 
 const ProviderMessagesPage = () => {
+  const [searchParams] = useSearchParams();
+  const clientId = searchParams.get('clientId');
+  const clientName = searchParams.get('clientName');
+  const { setMessages } = useSocket();
+
   const [conversations, setConversations] = useState([]);
   const [selectedConversation, setSelectedConversation] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
+
+  // Provider view now uses global SocketProvider; no local hook needed
 
   // Get current user info
   useEffect(() => {
@@ -16,12 +31,14 @@ const ProviderMessagesPage = () => {
     if (token) {
       try {
         const payload = JSON.parse(atob(token.split('.')[1]));
-        setCurrentUser({
+        const user = {
+          _id: payload.id,
           id: payload.id,
-          name: payload.name,
+          name: payload.name || payload.username || 'Unknown User',
           email: payload.email,
-          role: payload.role
-        });
+          role: payload.role,
+        };
+        setCurrentUser(user);
       } catch (error) {
         console.error('Error parsing token:', error);
       }
@@ -31,148 +48,234 @@ const ProviderMessagesPage = () => {
   useEffect(() => {
     const fetchConversations = async () => {
       try {
-        const response = await api.getMessages();
-        setConversations(response.data.conversations || []);
+        if (!currentUser?._id) return;
+        const response = await getBookingBasedConversations();
+        // Normalize to expected shape if needed
+        const list = (response.conversations || []).map((conv) => ({
+          _id: conv.participant?._id || conv._id,
+          id: conv.participant?._id || conv._id,
+          conversationId:
+            conv.conversationId ||
+            (conv.participant?._id && currentUser?._id
+              ? `conv_${[conv.participant._id || conv._id, currentUser._id].sort().join('_')}`
+              : undefined),
+          participant: conv.participant || {
+            _id: conv._id,
+            name: conv.participantName || conv.customerName || 'Unknown',
+            email: conv.participantEmail || conv.customerEmail,
+            avatar: conv.participant?.avatar || '/default-avatar.svg',
+          },
+          lastMessage: conv.lastMessage,
+          lastMessageTime: conv.lastMessageTime || conv.lastMessageDate,
+          unreadCount: conv.unreadCount || 0,
+          customerName: conv.customerName,
+        }));
+        setConversations(list);
       } catch (error) {
         console.error('Error fetching conversations:', error);
         setConversations([]);
       }
     };
-    
     fetchConversations();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser?._id]);
 
-  const filteredConversations = conversations.filter(conv =>
-    conv._id?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+  const markAsRead = useCallback(
+    async (customerId) => {
+      try {
+        await markMessagesAsRead({ senderId: customerId });
+        setConversations(
+          conversations.map((conv) =>
+            conv._id === customerId ? { ...conv, unreadCount: 0 } : conv
+          )
+        );
+      } catch (error) {
+        console.error('Error marking messages as read:', error);
+      }
+    },
+    [conversations]
   );
 
-  const markAsRead = async (customerId) => {
-    try {
-      await api.markMessagesRead(customerId);
-      setConversations(conversations.map(conv =>
-        conv._id._id === customerId ? { ...conv, unreadCount: 0 } : conv
-      ));
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
+  // Auto-select conversation when clientId is provided
+  useEffect(() => {
+    if (clientId && conversations.length > 0) {
+      const targetConversation = conversations.find(
+        (conv) =>
+          conv._id === clientId || conv.customerName === decodeURIComponent(clientName || '')
+      );
+
+      if (targetConversation) {
+        setSelectedConversation(targetConversation);
+        markAsRead(targetConversation._id);
+      }
     }
-  };
+  }, [clientId, clientName, conversations, markAsRead]);
+
+  const filteredConversations = conversations.filter((conv) =>
+    (conv.participant?.name || conv.customerName || '')
+      .toLowerCase()
+      .includes(searchQuery.toLowerCase())
+  );
 
   const totalUnread = conversations.reduce((sum, conv) => sum + conv.unreadCount, 0);
 
+  // Preload messages for selected conversation
+  useEffect(() => {
+    const loadHistory = async () => {
+      try {
+        if (!selectedConversation || !currentUser) return;
+        const otherUserId = selectedConversation.participant?._id || selectedConversation._id;
+        const convId = `conv_${[currentUser._id, otherUserId].sort().join('_')}`;
+        const resp = await getConversationMessages(otherUserId);
+        const msgs = resp.messages || [];
+        setMessages((prev) => ({ ...prev, [convId]: msgs }));
+      } catch (e) {
+        console.error('Failed to load conversation history:', e);
+      }
+    };
+    loadHistory();
+  }, [selectedConversation, currentUser, setMessages]);
+
+  const formatTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffInHours = (now - date) / (1000 * 60 * 60);
+    if (diffInHours < 24) {
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } else if (diffInHours < 168) {
+      return date.toLocaleDateString([], { weekday: 'short' });
+    } else {
+      return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    }
+  };
+
   return (
-    <div className="dashboard-page">
+    <div className="messages-page">
       <Header isLoggedIn={true} userType="provider" />
-      <main className="dashboard-main">
-        <div className="container-fluid px-3">
-          <div className="row mb-4">
-            <div className="col-12">
-              <div className="d-flex justify-content-between align-items-center">
-                <h1 className="h3 mb-0">Messages</h1>
-                <div className="d-flex gap-2">
-                  <span className="badge bg-primary">
-                    {totalUnread} unread
-                  </span>
-                  <span className="badge bg-secondary">
-                    {conversations.length} conversations
-                  </span>
-                </div>
+      <main className="messages-main">
+        <div className="container-fluid">
+          <div className="messages-header">
+            <div className="header-content">
+              <h1>Messages</h1>
+              <p>Communicate with your customers</p>
+            </div>
+            <div className="header-stats">
+              <div className="stat-item">
+                <span className="stat-value">{totalUnread}</span>
+                <span className="stat-label">Unread</span>
+              </div>
+              <div className="stat-item">
+                <span className="stat-value">{conversations.length}</span>
+                <span className="stat-label">Conversations</span>
               </div>
             </div>
           </div>
 
-          <div className="row" style={{height: 'calc(100vh - 200px)'}}>
-            {/* Conversations Sidebar */}
-            <div className="col-lg-4 col-md-5 mb-3">
-              <div className="card h-100">
-                <div className="card-header">
-                  <h5 className="card-title mb-0">Conversations</h5>
+          <div className="messages-container">
+            <div className="conversations-sidebar">
+              <div className="sidebar-header">
+                <h3>Conversations</h3>
+                <div className="search-container">
+                  <input
+                    type="text"
+                    placeholder="Search conversations..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="search-input"
+                  />
                 </div>
-                <div className="card-body p-0">
-                  <div className="p-3 border-bottom">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search conversations..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                    />
+              </div>
+
+              <div className="conversations-list">
+                {filteredConversations.length === 0 ? (
+                  <div className="empty-conversations">
+                    <div className="empty-icon">💬</div>
+                    <h4>No conversations</h4>
+                    <p>Start a conversation by contacting a customer</p>
                   </div>
-                  
-                  <div className="overflow-auto" style={{height: 'calc(100% - 80px)'}}>
-                    {filteredConversations.length === 0 ? (
-                      <div className="text-center p-4">
-                        <div className="mb-3" style={{fontSize: '3rem'}}>💬</div>
-                        <p className="text-muted">No conversations found</p>
-                      </div>
-                    ) : (
-                      <div className="list-group list-group-flush">
-                        {filteredConversations.map(conversation => (
-                          <div 
-                            key={conversation.id}
-                            className={`list-group-item list-group-item-action ${selectedConversation?.id === conversation.id ? 'active' : ''} ${conversation.unreadCount > 0 ? 'border-start border-primary border-3' : ''}`}
-                            onClick={() => {
-                              setSelectedConversation(conversation);
-                              markAsRead(conversation.id);
+                ) : (
+                  filteredConversations.map((conversation) => (
+                    <button
+                      type="button"
+                      key={conversation._id}
+                      className={`conversation-item ${selectedConversation?._id === conversation._id ? 'active' : ''} ${conversation.unreadCount > 0 ? 'unread' : ''}`}
+                      onClick={() => {
+                        setSelectedConversation(conversation);
+                        markAsRead(conversation._id);
+                      }}
+                      aria-pressed={selectedConversation?._id === conversation._id}
+                    >
+                      <div className="conversation-avatar">
+                        {conversation.participant?.avatar ? (
+                          <img
+                            src={conversation.participant.avatar}
+                            alt={conversation.participant.name}
+                            onError={(e) => {
+                              e.target.src = '/default-avatar.svg';
                             }}
-                            style={{cursor: 'pointer'}}
-                          >
-                            <div className="d-flex align-items-start position-relative">
-                              <div className="position-relative me-3" style={{fontSize: '2rem'}}>
-                                {conversation.customerAvatar}
-                                {conversation.isOnline && (
-                                  <span className="position-absolute top-0 start-100 translate-middle p-1 bg-success border border-light rounded-circle">
-                                    <span className="visually-hidden">Online</span>
-                                  </span>
-                                )}
-                              </div>
-                              
-                              <div className="flex-grow-1">
-                                <div className="d-flex justify-content-between align-items-start mb-1">
-                                  <h6 className="mb-0 text-truncate">{conversation.customerName}</h6>
-                                  <small className="text-muted ms-2">{conversation.lastMessageTime}</small>
-                                </div>
-                                
-                                <div className="mb-1">
-                                  <span className="badge bg-light text-dark small">{conversation.service}</span>
-                                </div>
-                                <p className="mb-0 text-muted small text-truncate">
-                                  {conversation.lastMessage}
-                                </p>
-                                
-                                {conversation.unreadCount > 0 && (
-                                  <div className="position-absolute top-50 end-0 translate-middle-y me-2">
-                                    <span className="badge bg-primary rounded-pill">{conversation.unreadCount}</span>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                          />
+                        ) : (
+                          <img src={'/default-avatar.svg'} alt="avatar" />
+                        )}
+                        {conversation.isOnline && <div className="online-indicator"></div>}
                       </div>
-                    )}
-                  </div>
-                </div>
+
+                      <div className="conversation-content">
+                        <div className="conversation-header">
+                          <h4 className="provider-name">
+                            {conversation.participant?.name ||
+                              conversation.customerName ||
+                              'Unknown'}
+                          </h4>
+                          <span className="last-time">
+                            {formatTime(
+                              conversation.lastMessageTime || conversation.lastMessageDate
+                            )}
+                          </span>
+                        </div>
+                        <div className="conversation-preview">
+                          <p className="last-message">
+                            {conversation.lastMessage || 'No messages yet'}
+                          </p>
+                          {conversation.unreadCount > 0 && (
+                            <span className="unread-badge">{conversation.unreadCount}</span>
+                          )}
+                        </div>
+                      </div>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
-            {/* Messages Area */}
-            <div className="col-lg-8 col-md-7">
-              <div className="card h-100" style={{padding: 0}}>
-                {selectedConversation && currentUser ? (
-                  <ChatWindow 
-                    conversation={selectedConversation} 
-                    currentUser={currentUser}
-                  />
-                ) : (
-                  <div className="card-body d-flex align-items-center justify-content-center h-100">
-                    <div className="text-center">
-                      <div className="mb-3" style={{fontSize: '4rem'}}>💬</div>
-                      <h5 className="text-muted">Select a conversation to start messaging</h5>
-                      <p className="text-muted">Choose a conversation from the sidebar to view messages</p>
-                    </div>
+            <div className="chat-area">
+              {selectedConversation && currentUser ? (
+                <ChatWindow
+                  conversation={{
+                    id: selectedConversation.participant?._id || selectedConversation._id,
+                    conversationId: `conv_${[currentUser?._id, selectedConversation.participant?._id || selectedConversation._id].sort().join('_')}`,
+                    participant: {
+                      _id: selectedConversation.participant?._id || selectedConversation._id,
+                      name:
+                        selectedConversation.participant?.name || selectedConversation.customerName,
+                      email:
+                        selectedConversation.participant?.email ||
+                        selectedConversation.customerEmail,
+                      avatar: selectedConversation.participant?.avatar,
+                    },
+                  }}
+                  currentUser={currentUser}
+                />
+              ) : (
+                <div className="chat-placeholder">
+                  <div className="placeholder-content">
+                    <div className="placeholder-icon">💬</div>
+                    <h3>Select a conversation</h3>
+                    <p>Choose a conversation from the sidebar to start messaging</p>
                   </div>
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

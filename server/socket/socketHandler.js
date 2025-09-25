@@ -11,7 +11,8 @@ class SocketHandler {
           ? ['https://yourdomain.com'] 
           : ['http://localhost:3000'],
         methods: ['GET', 'POST'],
-        credentials: true
+        credentials: true,
+        allowedHeaders: ['Authorization', 'Content-Type']
       }
     });
 
@@ -26,9 +27,11 @@ class SocketHandler {
     // Socket authentication middleware
     this.io.use(async (socket, next) => {
       try {
+        console.log('🔐 Incoming socket connection attempt');
         const token = socket.handshake.auth.token || socket.handshake.headers.authorization?.split(' ')[1];
         
         if (!token) {
+          console.warn('⚠️  Socket auth failed: missing token');
           return next(new Error('Authentication token required'));
         }
 
@@ -36,11 +39,13 @@ class SocketHandler {
         const user = await User.findById(decoded.id).select('-password');
         
         if (!user) {
+          console.warn('⚠️  Socket auth failed: user not found');
           return next(new Error('User not found'));
         }
 
         socket.userId = user._id.toString();
         socket.user = user;
+        console.log(`✅ Socket auth success for user ${user.name} (${socket.userId})`);
         next();
       } catch (error) {
         console.error('Socket authentication error:', error.message);
@@ -52,6 +57,9 @@ class SocketHandler {
   setupEventHandlers() {
     this.io.on('connection', (socket) => {
       console.log(`User ${socket.user.name} connected (${socket.userId})`);
+      socket.on('error', (err) => {
+        console.error('Socket runtime error:', err.message || err);
+      });
       
       // Store user connection
       this.connectedUsers.set(socket.userId, socket.id);
@@ -62,18 +70,46 @@ class SocketHandler {
       // Join user to their conversation rooms
       this.joinUserRooms(socket);
 
-      // Handle incoming messages
-      socket.on('send_message', (data) => this.handleSendMessage(socket, data));
-      
-      // Handle typing indicators
-      socket.on('typing_start', (data) => this.handleTypingStart(socket, data));
-      socket.on('typing_stop', (data) => this.handleTypingStop(socket, data));
-      
-      // Handle joining conversation rooms
-      socket.on('join_conversation', (data) => this.handleJoinConversation(socket, data));
-      
-      // Handle message read status
-      socket.on('mark_messages_read', (data) => this.handleMarkMessagesRead(socket, data));
+      // Minimal regenerated DM API
+      socket.on('dm:join', ({ conversationId }) => {
+        if (!conversationId) return;
+        socket.join(conversationId);
+        console.log(`dm:join -> ${socket.userId} joined ${conversationId}`);
+      });
+
+      socket.on('dm:send', async ({ to, text, conversationId }) => {
+        try {
+          if (!to || !text || !conversationId) return;
+          const msg = new Message({
+            senderId: socket.userId,
+            receiverId: to,
+            message: String(text).trim(),
+            conversationId,
+            status: 'sent',
+            timestamp: new Date()
+          });
+          const saved = await msg.save();
+          await saved.populate([{ path: 'senderId', select: 'name email avatar role' }]);
+          this.io.to(conversationId).emit('dm:new', { conversationId, message: saved });
+        } catch (e) {
+          console.error('dm:send error', e);
+        }
+      });
+
+      socket.on('dm:typing', ({ conversationId, to, isTyping }) => {
+        if (!conversationId) return;
+        socket.to(conversationId).emit('dm:typing', { conversationId, userId: socket.userId, isTyping: !!isTyping });
+      });
+
+      socket.on('dm:read', async ({ conversationId, messageIds }) => {
+        try {
+          if (!conversationId || !Array.isArray(messageIds) || messageIds.length === 0) return;
+          await Message.updateMany({ _id: { $in: messageIds }, receiverId: socket.userId }, { status: 'read' });
+          socket.to(conversationId).emit('dm:read', { conversationId, messageIds });
+        } catch (e) {
+          console.error('dm:read error', e);
+        }
+      });
 
       // Handle disconnection
       socket.on('disconnect', () => this.handleDisconnection(socket));
@@ -82,26 +118,13 @@ class SocketHandler {
 
   async joinUserRooms(socket) {
     try {
-      // Get user's conversations based on their role
-      let conversations = [];
-      
-      if (socket.user.role === 'provider') {
-        // Join provider's conversation rooms
-        conversations = await Message.distinct('conversationId', {
-          $or: [
-            { providerId: socket.userId },
-            { receiverId: socket.userId }
-          ]
-        });
-      } else {
-        // Join client's conversation rooms
-        conversations = await Message.distinct('conversationId', {
-          $or: [
-            { senderId: socket.userId },
-            { receiverId: socket.userId }
-          ]
-        });
-      }
+      // Join all conversation rooms where this user is sender or receiver
+      const conversations = await Message.distinct('conversationId', {
+        $or: [
+          { senderId: socket.userId },
+          { receiverId: socket.userId }
+        ]
+      });
 
       // Join all conversation rooms
       conversations.forEach(conversationId => {
@@ -115,118 +138,7 @@ class SocketHandler {
     }
   }
 
-  async handleSendMessage(socket, data) {
-    try {
-      const { receiverId, message, conversationId } = data;
-
-      // Create message in database
-      const newMessage = new Message({
-        senderId: socket.userId,
-        receiverId,
-        message: message.trim(),
-        conversationId,
-        timestamp: new Date(),
-        status: 'sent'
-      });
-
-      const savedMessage = await newMessage.save();
-      await savedMessage.populate([
-        { path: 'senderId', select: 'name email avatar role' },
-        { path: 'receiverId', select: 'name email avatar role' }
-      ]);
-
-      // Emit to conversation room
-      this.io.to(conversationId).emit('new_message', {
-        message: savedMessage,
-        conversationId,
-        timestamp: new Date()
-      });
-
-      // Update message status to delivered if receiver is online
-      const receiverSocketId = this.connectedUsers.get(receiverId);
-      if (receiverSocketId) {
-        savedMessage.status = 'delivered';
-        await savedMessage.save();
-        
-        // Notify sender about delivery
-        socket.emit('message_delivered', {
-          messageId: savedMessage._id,
-          conversationId
-        });
-      }
-
-      console.log(`Message sent from ${socket.user.name} to conversation ${conversationId}`);
-      
-    } catch (error) {
-      console.error('Error handling send message:', error);
-      socket.emit('message_error', { 
-        error: 'Failed to send message',
-        details: error.message 
-      });
-    }
-  }
-
-  handleJoinConversation(socket, data) {
-    const { conversationId } = data;
-    
-    socket.join(conversationId);
-    
-    // Add to user rooms if not already present
-    const userRooms = this.userRooms.get(socket.userId) || [];
-    if (!userRooms.includes(conversationId)) {
-      userRooms.push(conversationId);
-      this.userRooms.set(socket.userId, userRooms);
-    }
-
-    console.log(`User ${socket.user.name} joined conversation ${conversationId}`);
-  }
-
-  handleTypingStart(socket, data) {
-    const { conversationId, receiverId } = data;
-    
-    socket.to(conversationId).emit('user_typing', {
-      userId: socket.userId,
-      userName: socket.user.name,
-      conversationId,
-      isTyping: true
-    });
-  }
-
-  handleTypingStop(socket, data) {
-    const { conversationId } = data;
-    
-    socket.to(conversationId).emit('user_typing', {
-      userId: socket.userId,
-      userName: socket.user.name,
-      conversationId,
-      isTyping: false
-    });
-  }
-
-  async handleMarkMessagesRead(socket, data) {
-    try {
-      const { conversationId, messageIds } = data;
-
-      // Update message status to read
-      await Message.updateMany(
-        { 
-          _id: { $in: messageIds },
-          receiverId: socket.userId 
-        },
-        { status: 'read' }
-      );
-
-      // Notify sender about read status
-      socket.to(conversationId).emit('messages_read', {
-        messageIds,
-        conversationId,
-        readBy: socket.userId
-      });
-
-    } catch (error) {
-      console.error('Error marking messages as read:', error);
-    }
-  }
+  // Removed legacy handlers: handleSendMessage/handleJoinConversation/typing/read
 
   handleDisconnection(socket) {
     console.log(`User ${socket.user.name} disconnected`);
@@ -250,6 +162,11 @@ class SocketHandler {
         timestamp: new Date()
       });
     });
+  }
+
+  // 1:1 private room id generator (mirrors client generateRoomId)
+  generatePrivateRoomId(userId1, userId2) {
+    return `room_${[userId1.toString(), userId2.toString()].sort().join('_')}`;
   }
 
   // Utility method to send message to specific user

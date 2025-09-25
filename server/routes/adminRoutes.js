@@ -8,7 +8,9 @@ const {
   updateUser,
   deleteUser,
   deleteService,
-  getReports
+  getReports,
+  getAdvancedAnalytics,
+  getRealTimeMetrics
 } = require('../controllers/adminController');
 const { protect, restrictTo } = require('../middleware/auth');
 
@@ -21,6 +23,8 @@ router.use(restrictTo('admin'));
 // Dashboard and statistics
 router.get('/dashboard', getDashboardStats);
 router.get('/reports', getReports);
+router.get('/analytics', getAdvancedAnalytics);
+router.get('/metrics', getRealTimeMetrics);
 
 // User management
 router.get('/users', getAllUsers);

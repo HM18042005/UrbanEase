@@ -1,0 +1,110 @@
+{
+    "root": true,
+    "env": {
+        "browser": true,
+        "es2022": true,
+        "jest": true
+    },
+    "extends": [
+        "react-app",
+        "react-app/jest",
+        "plugin:jsx-a11y/recommended",
+        "plugin:import/recommended",
+        "prettier"
+    ],
+    "plugins": [
+        "import",
+        "jsx-a11y",
+        "prettier"
+    ],
+    "ignorePatterns": [
+        "build/",
+        "node_modules/",
+        "**/*_old.js",
+        "**/*_new.js",
+        "**/deprecated/**"
+    ],
+    "settings": {
+        "react": {
+            "version": "detect"
+        },
+        "import/resolver": {
+            "node": {
+                "extensions": [
+                    ".js",
+                    ".jsx",
+                    ".json"
+                ]
+            }
+        }
+    },
+    "rules": {
+        "prettier/prettier": "error",
+        "react/react-in-jsx-scope": "off",
+        "react/jsx-uses-react": "off",
+        "react/prop-types": [
+            "warn",
+            {
+                "skipUndeclared": false
+            }
+        ],
+        "react/jsx-pascal-case": "warn",
+        "react/function-component-definition": [
+            "warn",
+            {
+                "namedComponents": "arrow-function",
+                "unnamedComponents": "arrow-function"
+            }
+        ],
+        "react/jsx-no-constructed-context-values": "warn",
+        "import/order": [
+            "warn",
+            {
+                "groups": [
+                    "builtin",
+                    "external",
+                    "internal",
+                    [
+                        "parent",
+                        "sibling",
+                        "index"
+                    ]
+                ],
+                "pathGroups": [
+                    {
+                        "pattern": "react",
+                        "group": "external",
+                        "position": "before"
+                    },
+                    {
+                        "pattern": "react-dom",
+                        "group": "external",
+                        "position": "before"
+                    }
+                ],
+                "pathGroupsExcludedImportTypes": [
+                    "react",
+                    "react-dom"
+                ],
+                "newlines-between": "always",
+                "alphabetize": {
+                    "order": "asc",
+                    "caseInsensitive": true
+                }
+            }
+        ],
+        "import/newline-after-import": "warn",
+        "no-console": [
+            "warn",
+            {
+                "allow": [
+                    "warn",
+                    "error"
+                ]
+            }
+        ],
+        "jsx-a11y/label-has-associated-control": "warn",
+        "jsx-a11y/click-events-have-key-events": "warn",
+        "jsx-a11y/no-static-element-interactions": "warn"
+    }
+}

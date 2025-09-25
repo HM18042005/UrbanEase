@@ -159,6 +159,7 @@ const server = http.createServer(app);
 // Initialize Socket.IO
 const socketHandler = new SocketHandler(server);
 
+
 // Make socket handler available to routes
 app.set('socketHandler', socketHandler);
 

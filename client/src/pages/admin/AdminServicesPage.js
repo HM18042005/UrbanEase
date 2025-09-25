@@ -1,15 +1,16 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import Header from '../../components/Header';
+import { useEffect, useMemo, useState } from 'react';
+
 import { adminAPI } from '../../api/services';
+import Header from '../../components/Header';
 import './AdminDashboard.css';
 
 /**
  * AdminServicesPage Component
- * 
+ *
  * What: Service management interface for administrators
  * When: Admin needs to monitor, approve, and manage all platform services
  * Why: Provides centralized service administration with approval workflows
- * 
+ *
  * Features:
  * - Service list with search and filtering
  * - Service approval/rejection workflow
@@ -29,16 +30,18 @@ const AdminServicesPage = () => {
 
   // Service statistics
   const stats = useMemo(() => {
-    if (!Array.isArray(services)) return { total: 0, active: 0, pending: 0, suspended: 0, categories: 0, avgRating: 0 };
-    
+    if (!Array.isArray(services))
+      return { total: 0, active: 0, pending: 0, suspended: 0, categories: 0, avgRating: 0 };
+
     const total = services.length;
-    const active = services.filter(s => s.status === 'active').length;
-    const pending = services.filter(s => s.status === 'pending').length;
-    const suspended = services.filter(s => s.status === 'suspended').length;
-    const categories = [...new Set(services.map(s => s.category))].length;
-    const avgRating = services.length > 0 
-      ? services.reduce((sum, s) => sum + (s.averageRating || 0), 0) / services.length 
-      : 0;
+    const active = services.filter((s) => s.status === 'active').length;
+    const pending = services.filter((s) => s.status === 'pending').length;
+    const suspended = services.filter((s) => s.status === 'suspended').length;
+    const categories = [...new Set(services.map((s) => s.category))].length;
+    const avgRating =
+      services.length > 0
+        ? services.reduce((sum, s) => sum + (s.averageRating || 0), 0) / services.length
+        : 0;
 
     return { total, active, pending, suspended, categories, avgRating };
   }, [services]);
@@ -51,11 +54,11 @@ const AdminServicesPage = () => {
     try {
       setLoading(true);
       setError('');
-      
+
       // Fetch real services data from API
       const response = await adminAPI.getAllServices();
       const servicesData = response?.data || response?.services || response || [];
-      
+
       // Ensure we always set an array
       setServices(Array.isArray(servicesData) ? servicesData : []);
     } catch (err) {
@@ -71,14 +74,14 @@ const AdminServicesPage = () => {
     try {
       // Update service status via API
       await adminAPI.updateServiceStatus(serviceId, newStatus);
-      
+
       // Update local state
       if (Array.isArray(services)) {
-        setServices(services.map(service => 
-          service._id === serviceId 
-            ? { ...service, status: newStatus }
-            : service
-        ));
+        setServices(
+          services.map((service) =>
+            service._id === serviceId ? { ...service, status: newStatus } : service
+          )
+        );
       }
     } catch (err) {
       console.error('Error updating service status:', err);
@@ -88,33 +91,38 @@ const AdminServicesPage = () => {
 
   const filteredServices = useMemo(() => {
     if (!Array.isArray(services)) return [];
-    
-    return services.filter(service => {
-      const matchesSearch = 
+
+    return services.filter((service) => {
+      const matchesSearch =
         service.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         service.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         service.providerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         service.category?.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       const matchesCategory = categoryFilter === 'all' || service.category === categoryFilter;
       const matchesStatus = statusFilter === 'all' || service.status === statusFilter;
-      
+
       return matchesSearch && matchesCategory && matchesStatus;
     });
   }, [services, searchTerm, categoryFilter, statusFilter]);
 
   const categories = useMemo(() => {
     if (!Array.isArray(services)) return [];
-    return [...new Set(services.map(s => s.category))];
+    return [...new Set(services.map((s) => s.category))];
   }, [services]);
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'active': return '#10b981';
-      case 'pending': return '#f59e0b';
-      case 'suspended': return '#ef4444';
-      case 'inactive': return '#6b7280';
-      default: return '#6b7280';
+      case 'active':
+        return '#10b981';
+      case 'pending':
+        return '#f59e0b';
+      case 'suspended':
+        return '#ef4444';
+      case 'inactive':
+        return '#6b7280';
+      default:
+        return '#6b7280';
     }
   };
 
@@ -123,14 +131,14 @@ const AdminServicesPage = () => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   };
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'USD',
     }).format(amount || 0);
   };
 
@@ -178,7 +186,9 @@ const AdminServicesPage = () => {
               <div className="alert alert-error">
                 <span className="alert-icon">⚠️</span>
                 <span>{error}</span>
-                <button className="alert-close" onClick={() => setError('')}>×</button>
+                <button className="alert-close" onClick={() => setError('')}>
+                  ×
+                </button>
               </div>
             )}
 
@@ -191,7 +201,7 @@ const AdminServicesPage = () => {
                 </div>
                 <div className="stat-icon">🛠️</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.active}</div>
@@ -199,7 +209,7 @@ const AdminServicesPage = () => {
                 </div>
                 <div className="stat-icon">✅</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.pending}</div>
@@ -207,7 +217,7 @@ const AdminServicesPage = () => {
                 </div>
                 <div className="stat-icon">⏳</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.suspended}</div>
@@ -215,7 +225,7 @@ const AdminServicesPage = () => {
                 </div>
                 <div className="stat-icon">⛔</div>
               </div>
-              
+
               <div className="stat-card">
                 <div className="stat-content">
                   <div className="stat-value">{stats.avgRating.toFixed(1)}</div>
@@ -238,21 +248,23 @@ const AdminServicesPage = () => {
                   />
                   <span className="search-icon">🔍</span>
                 </div>
-                
+
                 <div className="filter-controls">
-                  <select 
-                    value={categoryFilter} 
+                  <select
+                    value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
                     className="filter-select"
                   >
                     <option value="all">All Categories</option>
-                    {categories.map(category => (
-                      <option key={category} value={category}>{category}</option>
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category}
+                      </option>
                     ))}
                   </select>
-                  
-                  <select 
-                    value={statusFilter} 
+
+                  <select
+                    value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
                     className="filter-select"
                   >
@@ -262,12 +274,8 @@ const AdminServicesPage = () => {
                     <option value="suspended">Suspended</option>
                     <option value="inactive">Inactive</option>
                   </select>
-                  
-                  <button 
-                    onClick={fetchServices}
-                    className="refresh-btn"
-                    title="Refresh services"
-                  >
+
+                  <button onClick={fetchServices} className="refresh-btn" title="Refresh services">
                     🔄
                   </button>
                 </div>
@@ -279,7 +287,7 @@ const AdminServicesPage = () => {
               <div className="card-header">
                 <h3>Services ({filteredServices.length})</h3>
               </div>
-              
+
               <div className="table-container">
                 {filteredServices.length === 0 ? (
                   <div className="empty-state">
@@ -303,20 +311,19 @@ const AdminServicesPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredServices.map(service => (
+                      {filteredServices.map((service) => (
                         <tr key={service._id}>
                           <td>
                             <div className="service-info">
                               <div className="service-name">{service.title || 'N/A'}</div>
                               <div className="service-description">
-                                {service.description?.length > 60 
+                                {service.description?.length > 60
                                   ? `${service.description.substring(0, 60)}...`
-                                  : service.description || 'No description'
-                                }
+                                  : service.description || 'No description'}
                               </div>
                             </div>
                           </td>
-                          
+
                           <td>
                             <div className="user-info">
                               <div className="user-avatar">
@@ -328,50 +335,46 @@ const AdminServicesPage = () => {
                               </div>
                             </div>
                           </td>
-                          
+
                           <td>
-                            <span className="category-badge">
-                              {service.category || 'Other'}
-                            </span>
+                            <span className="category-badge">{service.category || 'Other'}</span>
                           </td>
-                          
+
                           <td>
-                            <span className="price-text">
-                              {formatCurrency(service.price)}
-                            </span>
+                            <span className="price-text">{formatCurrency(service.price)}</span>
                           </td>
-                          
+
                           <td>
                             <div className="rating-cell">
-                              <span className="stars">{renderStars(service.averageRating || 0)}</span>
-                              <span className="rating-number">({(service.averageRating || 0).toFixed(1)})</span>
+                              <span className="stars">
+                                {renderStars(service.averageRating || 0)}
+                              </span>
+                              <span className="rating-number">
+                                ({(service.averageRating || 0).toFixed(1)})
+                              </span>
                             </div>
                           </td>
-                          
+
                           <td>
-                            <span className="bookings-count">
-                              {service.totalBookings || 0}
-                            </span>
+                            <span className="bookings-count">{service.totalBookings || 0}</span>
                           </td>
-                          
+
                           <td>
-                            <span className="date-text">
-                              {formatDate(service.createdAt)}
-                            </span>
+                            <span className="date-text">{formatDate(service.createdAt)}</span>
                           </td>
-                          
+
                           <td>
-                            <span 
+                            <span
                               className="status-badge"
-                              style={{ 
+                              style={{
                                 backgroundColor: getStatusColor(service.status),
-                                color: 'white'
+                                color: 'white',
                               }}
                             >
                               {service.status}
                             </span>
                           </td>
-                          
+
                           <td>
                             <div className="action-buttons">
                               <button
@@ -384,7 +387,7 @@ const AdminServicesPage = () => {
                               >
                                 👁️
                               </button>
-                              
+
                               {service.status === 'pending' && (
                                 <button
                                   onClick={() => handleStatusUpdate(service._id, 'active')}
@@ -394,7 +397,7 @@ const AdminServicesPage = () => {
                                   ✅
                                 </button>
                               )}
-                              
+
                               {service.status === 'active' && (
                                 <button
                                   onClick={() => handleStatusUpdate(service._id, 'suspended')}
@@ -404,7 +407,7 @@ const AdminServicesPage = () => {
                                   ⛔
                                 </button>
                               )}
-                              
+
                               {service.status === 'suspended' && (
                                 <button
                                   onClick={() => handleStatusUpdate(service._id, 'active')}
@@ -426,24 +429,40 @@ const AdminServicesPage = () => {
 
             {/* Service Detail Modal */}
             {showModal && selectedService && (
-              <div className="modal-overlay" onClick={() => setShowModal(false)}>
-                <div className="modal-content user-modal" onClick={(e) => e.stopPropagation()}>
+              <div
+                className="modal-overlay"
+                role="button"
+                tabIndex={0}
+                aria-label="Close modal"
+                onClick={(e) => {
+                  if (e.currentTarget === e.target) setShowModal(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape' || e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    setShowModal(false);
+                  }
+                }}
+              >
+                <div
+                  className="modal-content user-modal"
+                  role="dialog"
+                  aria-modal="true"
+                  tabIndex={-1}
+                >
                   <div className="modal-header">
                     <h3>Service Details</h3>
-                    <button 
-                      className="modal-close"
-                      onClick={() => setShowModal(false)}
-                    >
+                    <button className="modal-close" onClick={() => setShowModal(false)}>
                       ×
                     </button>
                   </div>
-                  
+
                   <div className="modal-body">
                     <div className="service-profile">
                       <div className="profile-info">
                         <h4>{selectedService.title}</h4>
                         <p className="profile-email">{selectedService.category}</p>
-                        <span 
+                        <span
                           className="profile-role"
                           style={{ backgroundColor: getStatusColor(selectedService.status) }}
                         >
@@ -451,53 +470,59 @@ const AdminServicesPage = () => {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="profile-details">
-                      <div className="detail-group">
-                        <label>Description:</label>
-                        <span style={{ whiteSpace: 'pre-wrap' }}>{selectedService.description || 'No description provided'}</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Provider:</label>
-                        <span>{selectedService.providerName} ({selectedService.providerEmail})</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Category:</label>
-                        <span>{selectedService.category}</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Price:</label>
-                        <span>{formatCurrency(selectedService.price)}</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Rating:</label>
-                        <span>{renderStars(selectedService.averageRating || 0)} ({(selectedService.averageRating || 0).toFixed(1)})</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Total Bookings:</label>
-                        <span>{selectedService.totalBookings || 0}</span>
-                      </div>
-                      
-                      <div className="detail-group">
-                        <label>Created:</label>
-                        <span>{formatDate(selectedService.createdAt)}</span>
-                      </div>
+                      <dl className="detail-list">
+                        <div className="detail-group">
+                          <dt>Description:</dt>
+                          <dd style={{ whiteSpace: 'pre-wrap' }}>
+                            {selectedService.description || 'No description provided'}
+                          </dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Provider:</dt>
+                          <dd>
+                            {selectedService.providerName} ({selectedService.providerEmail})
+                          </dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Category:</dt>
+                          <dd>{selectedService.category}</dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Price:</dt>
+                          <dd>{formatCurrency(selectedService.price)}</dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Rating:</dt>
+                          <dd>
+                            {renderStars(selectedService.averageRating || 0)} (
+                            {(selectedService.averageRating || 0).toFixed(1)})
+                          </dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Total Bookings:</dt>
+                          <dd>{selectedService.totalBookings || 0}</dd>
+                        </div>
+
+                        <div className="detail-group">
+                          <dt>Created:</dt>
+                          <dd>{formatDate(selectedService.createdAt)}</dd>
+                        </div>
+                      </dl>
                     </div>
                   </div>
-                  
+
                   <div className="modal-footer">
-                    <button 
-                      className="btn btn-secondary"
-                      onClick={() => setShowModal(false)}
-                    >
+                    <button className="btn btn-secondary" onClick={() => setShowModal(false)}>
                       Close
                     </button>
-                    
+
                     {selectedService.status === 'pending' && (
                       <button
                         onClick={() => {
@@ -509,7 +534,7 @@ const AdminServicesPage = () => {
                         Approve Service
                       </button>
                     )}
-                    
+
                     {selectedService.status === 'active' && (
                       <button
                         onClick={() => {
@@ -521,7 +546,7 @@ const AdminServicesPage = () => {
                         Suspend Service
                       </button>
                     )}
-                    
+
                     {selectedService.status === 'suspended' && (
                       <button
                         onClick={() => {
