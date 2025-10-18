@@ -13,8 +13,8 @@ import AdminReviewsPage from './pages/admin/AdminReviewsPage';
 import AdminServicesPage from './pages/admin/AdminServicesPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
-import BookingForm from './pages/client/BookingForm';
 import BookingsPage from './pages/client/BookingsPage';
+import BookService from './pages/client/BookService';
 import HomePage from './pages/client/HomePage';
 import LoginPage from './pages/client/LoginPage';
 import MessagesPage from './pages/client/MessagesPage';
@@ -25,7 +25,6 @@ import ServicesPage from './pages/client/ServicesPage';
 import Dashboard from './pages/provider/Dashboard';
 import ProviderBookingsPage from './pages/provider/ProviderBookingsPage';
 import ProviderMessagesPage from './pages/provider/ProviderMessagesPage';
-import ProviderReportsPage from './pages/provider/ProviderReportsPage';
 import ProviderSchedulePage from './pages/provider/ProviderSchedulePage';
 import ProviderServicesPage from './pages/provider/ProviderServicesPage';
 
@@ -71,7 +70,7 @@ const App = () => {
               path="/book-service/:id"
               element={
                 <ProtectedRoute allowedRoles={['customer', 'provider', 'admin']}>
-                  <BookingForm />
+                  <BookService />
                 </ProtectedRoute>
               }
             />
@@ -138,14 +137,6 @@ const App = () => {
               element={
                 <ProtectedRoute allowedRoles={['provider']}>
                   <ProviderSchedulePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/provider/reports"
-              element={
-                <ProtectedRoute allowedRoles={['provider']}>
-                  <ProviderReportsPage />
                 </ProtectedRoute>
               }
             />

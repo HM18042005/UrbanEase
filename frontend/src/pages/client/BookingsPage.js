@@ -108,7 +108,16 @@ const BookingsPage = () => {
 
   // Payment functions
   const handlePayNow = (booking) => {
-    setSelectedBooking(booking);
+    const computedPrice = getBookingPrice(booking);
+
+    setSelectedBooking({
+      ...booking,
+      servicePrice: computedPrice,
+      totalAmount: booking.totalAmount ?? computedPrice,
+      serviceName:
+        booking.serviceName || booking.service?.title || booking.service?.name || 'Service',
+      providerName: booking.providerName || booking.provider?.name || 'Not specified',
+    });
     setShowPaymentModal(true);
   };
 
@@ -130,6 +139,30 @@ const BookingsPage = () => {
 
   const getPaymentStatus = (booking) => {
     return booking.paymentStatus || 'unpaid';
+  };
+
+  const getBookingPrice = (booking) => {
+    const rawPrice =
+      booking.totalAmount ??
+      booking.price ??
+      booking.amount ??
+      booking.service?.price ??
+      booking.service?.amount ??
+      0;
+
+    const numericPrice = Number(rawPrice);
+    return Number.isFinite(numericPrice) ? Math.max(numericPrice, 0) : 0;
+  };
+
+  const formatPrice = (value) => {
+    const numericPrice = Number(value);
+    if (!Number.isFinite(numericPrice)) {
+      return '0';
+    }
+
+    return numericPrice.toLocaleString('en-IN', {
+      maximumFractionDigits: numericPrice % 1 === 0 ? 0 : 2,
+    });
   };
 
   // Format status labels nicely for display
@@ -335,7 +368,7 @@ const BookingsPage = () => {
                       <div className="info-row">
                         <span className="info-label">Price:</span>
                         <span className="info-value price">
-                          ₹{booking.totalAmount || booking.price || 0}
+                          ₹{formatPrice(getBookingPrice(booking))}
                         </span>
                       </div>
                       <div className="info-row">

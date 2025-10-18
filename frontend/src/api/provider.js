@@ -21,20 +21,11 @@ export const api = {
 
   // Schedule and booking endpoints
   getSchedule: (params) => apiClient.get('/provider/schedule', { params }),
-  updateAvailability: (availabilityData) =>
-    apiClient.post('/provider/schedule/availability', availabilityData),
   getBookings: (params) => apiClient.get('/provider/bookings', { params }),
   updateBookingStatus: (id, status) => {
     const payload = typeof status === 'string' ? { status } : status;
     return apiClient.patch(`/provider/bookings/${id}`, payload);
   },
-
-  // Reports endpoints
-  getReports: (period = '30d') => apiClient.get(`/provider/reports?period=${period}`),
-  getEarningsReport: (period = '30d') =>
-    apiClient.get(`/provider/reports/earnings?period=${period}`),
-  getPerformanceReport: () => apiClient.get('/provider/reports/performance'),
-  getCustomerReport: () => apiClient.get('/provider/reports/customers'),
 };
 
 // Provider Dashboard APIs
@@ -63,8 +54,6 @@ export const markMessagesRead = (customerId) =>
 // Provider Schedule APIs
 export const getProviderSchedule = (params) =>
   apiClient.get('/provider/schedule', { params }).then((r) => r.data);
-export const updateAvailability = (data) =>
-  apiClient.post('/provider/schedule/availability', data).then((r) => r.data);
 export const getProviderBookings = (params) =>
   apiClient.get('/provider/bookings', { params }).then((r) => r.data);
 export const updateBookingStatus = (bookingId, status) =>
@@ -73,14 +62,5 @@ export const updateBookingStatus = (bookingId, status) =>
     .then((r) => r.data);
 
 // Provider Reports APIs
-export const getProviderReports = (params) =>
-  apiClient.get('/provider/reports', { params }).then((r) => r.data);
-export const getEarningsReport = (params) =>
-  apiClient.get('/provider/reports/earnings', { params }).then((r) => r.data);
-export const getPerformanceReport = (params) =>
-  apiClient.get('/provider/reports/performance', { params }).then((r) => r.data);
-export const getCustomerReport = (params) =>
-  apiClient.get('/provider/reports/customers', { params }).then((r) => r.data);
-
 // Default export
 export default api;

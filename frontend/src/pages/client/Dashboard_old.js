@@ -271,10 +271,6 @@ const Dashboard = () => {
                     <span className="btn-icon">�</span>
                     Update Schedule
                   </Link>
-                  <Link to="/provider/reports" className="action-btn">
-                    <span className="btn-icon">�</span>
-                    View Reports
-                  </Link>
                 </div>
               </div>
             </div>

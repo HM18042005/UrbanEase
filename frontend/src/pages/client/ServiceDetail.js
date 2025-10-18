@@ -141,6 +141,43 @@ const ServiceDetail = () => {
     );
   }
 
+  const priceNumber = Number((service.price ?? service.startingPrice) || 0);
+  const formattedPrice =
+    priceNumber > 0 ? `₹${priceNumber.toLocaleString('en-IN')}` : 'Contact for quote';
+  const ratingNumber = Number(service.rating);
+  const hasRating = Number.isFinite(ratingNumber) && ratingNumber > 0;
+  const ratingDisplay = hasRating ? ratingNumber.toFixed(1) : 'New';
+  const ratingStars = hasRating ? renderStars(ratingNumber) : '☆';
+  const reviewsLabel =
+    reviews.length > 0
+      ? `${reviews.length} review${reviews.length > 1 ? 's' : ''}`
+      : 'No reviews yet';
+  const ratingDescriptor = hasRating ? `${ratingDisplay} / 5` : 'Awaiting reviews';
+  const ratingSummaryClass = hasRating ? 'rating-summary positive' : 'rating-summary neutral';
+
+  const quickStats = [
+    {
+      label: 'Avg Rating',
+      value: ratingDisplay,
+      hint: reviews.length > 0 ? reviewsLabel : 'Awaiting feedback',
+    },
+    {
+      label: 'Price From',
+      value: formattedPrice,
+      hint: service.duration || 'Flexible schedule',
+    },
+    {
+      label: 'Status',
+      value:
+        service.isAvailable !== undefined
+          ? service.isAvailable
+            ? 'Available'
+            : 'Waitlist'
+          : 'On request',
+      hint: service.category || 'Service',
+    },
+  ];
+
   return (
     <div className="service-detail-page">
       <Header />
@@ -213,6 +250,15 @@ const ServiceDetail = () => {
                     </span>
                   )}
                 </div>
+                <div className="service-quick-stats" role="list">
+                  {quickStats.map((stat) => (
+                    <div key={stat.label} className="quick-stat" role="listitem">
+                      <span className="quick-stat-label">{stat.label}</span>
+                      <span className="quick-stat-value">{stat.value}</span>
+                      <span className="quick-stat-hint">{stat.hint}</span>
+                    </div>
+                  ))}
+                </div>
                 <p className="service-description">
                   {service.longDescription || service.description || 'No description available.'}
                 </p>
@@ -284,17 +330,20 @@ const ServiceDetail = () => {
             <div className="service-right">
               <div className="booking-card">
                 <div className="price-section">
-                  <span className="price-label">Starting at</span>
-                  <span className="price-value">
-                    ₹{Number((service.price ?? service.startingPrice) || 0).toLocaleString('en-IN')}
-                  </span>
-                  {service.duration && <span className="duration">({service.duration})</span>}
-                </div>
-
-                <div className="service-rating">
-                  <span className="rating-stars">{renderStars(service.rating)}</span>
-                  <span className="rating-value">{service.rating || 'No rating'}</span>
-                  <span className="rating-count">({reviews.length} reviews)</span>
+                  <div className="price-primary">
+                    <span className="price-label">Starting at</span>
+                    <span className="price-value">{formattedPrice}</span>
+                    {service.duration && <span className="duration">({service.duration})</span>}
+                  </div>
+                  <div className={ratingSummaryClass}>
+                    <span className="rating-stars" aria-hidden="true">
+                      {ratingStars}
+                    </span>
+                    <div className="rating-copy">
+                      <span className="rating-value">{ratingDescriptor}</span>
+                      <span className="rating-count">{reviewsLabel}</span>
+                    </div>
+                  </div>
                 </div>
 
                 <button className="book-now-btn" onClick={handleBookNow}>

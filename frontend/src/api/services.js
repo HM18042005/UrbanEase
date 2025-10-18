@@ -253,15 +253,6 @@ export const getProviderStats = () => api.get('/provider/stats').then((r) => r.d
 export const getProviderSchedule = (params = {}) =>
   api.get('/provider/schedule', { params }).then((r) => r.data);
 
-export const getProviderAvailability = (params = {}) =>
-  api.get('/provider/availability', { params }).then((r) => r.data);
-
-export const updateProviderAvailability = (scheduleData) =>
-  api.post('/provider/schedule/availability', scheduleData).then((r) => r.data);
-
-export const bulkUpdateTimeSlots = (timeSlotData) =>
-  api.post('/provider/timeslots/bulk', timeSlotData).then((r) => r.data);
-
 export const getProviderBookings = (params = {}) =>
   api.get('/provider/bookings', { params }).then((r) => r.data);
 
@@ -294,29 +285,14 @@ export const sendProviderMessage = (customerId, messageData) =>
 export const markProviderMessagesRead = (customerId) =>
   api.patch(`/provider/messages/${customerId}/read`).then((r) => r.data);
 
-export const getProviderReports = (params = {}) =>
-  api.get('/provider/reports', { params }).then((r) => r.data);
-
-export const getProviderEarningsReport = (params = {}) =>
-  api.get('/provider/reports/earnings', { params }).then((r) => r.data);
-
-export const getProviderPerformanceReport = (params = {}) =>
-  api.get('/provider/reports/performance', { params }).then((r) => r.data);
-
-export const getProviderCustomerReport = (params = {}) =>
-  api.get('/provider/reports/customers', { params }).then((r) => r.data);
-
 // =================== PROVIDER API OBJECT ===================
 export const providerAPI = {
   // Dashboard
   getDashboard: getProviderDashboard,
   getStats: getProviderStats,
 
-  // Schedule & Availability
+  // Schedule
   getSchedule: getProviderSchedule,
-  getAvailability: getProviderAvailability,
-  updateAvailability: updateProviderAvailability,
-  bulkUpdateTimeSlots,
 
   // Bookings
   getBookings: getProviderBookings,
@@ -334,12 +310,6 @@ export const providerAPI = {
   getConversation: getProviderConversation,
   sendMessage: sendProviderMessage,
   markMessagesRead: markProviderMessagesRead,
-
-  // Reports
-  getReports: getProviderReports,
-  getEarningsReport: getProviderEarningsReport,
-  getPerformanceReport: getProviderPerformanceReport,
-  getCustomerReport: getProviderCustomerReport,
 };
 
 export default servicesAPI;

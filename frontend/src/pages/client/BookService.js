@@ -74,9 +74,11 @@ const BookService = () => {
       setSubmitting(true);
 
       const booking = {
-        ...bookingData,
-        scheduledDateTime: `${bookingData.scheduledDate}T${bookingData.scheduledTime}`,
-        totalAmount: service?.price || 0,
+        serviceId: service?.id || service?._id || bookingData.serviceId,
+        date: new Date(`${bookingData.scheduledDate}T${bookingData.scheduledTime}`).toISOString(),
+        address: bookingData.address,
+        notes: bookingData.notes,
+        contactPhone: bookingData.contactPhone,
       };
 
       await bookingAPI.createBooking(booking);
@@ -96,7 +98,10 @@ const BookService = () => {
       <div className="book-service-page">
         <Header />
         <div className="container">
-          <div className="loading">Loading service details...</div>
+          <div className="loading-card">
+            <div className="spinner"></div>
+            <p>Loading service details...</p>
+          </div>
         </div>
       </div>
     );
@@ -107,11 +112,12 @@ const BookService = () => {
       <div className="book-service-page">
         <Header />
         <div className="container">
-          <div className="error-message">
-            <h2>Error</h2>
-            <p>{error || 'Service not found'}</p>
+          <div className="error-card">
+            <div className="error-icon">⚠️</div>
+            <h2>We hit a snag</h2>
+            <p>{error || 'The service you tried to book is unavailable right now.'}</p>
             <button onClick={() => navigate('/services')} className="btn-primary">
-              Back to Services
+              Browse services
             </button>
           </div>
         </div>
@@ -129,31 +135,57 @@ const BookService = () => {
         <div className="container">
           <div className="booking-header">
             <button onClick={() => navigate(`/service/${id}`)} className="back-btn">
-              ← Back to Service
+              <span aria-hidden="true">←</span>
+              Back to service
             </button>
-            <h1>Book Service</h1>
+            <div className="booking-title">
+              <h1>Book Service: {service.title || 'Selected service'}</h1>
+              <p>
+                Lock in a time that works best for you—we’ll notify{' '}
+                {service.provider?.name || 'the provider'} instantly.
+              </p>
+            </div>
           </div>
 
           <div className="booking-layout">
             {/* Left Column - Service Summary */}
             <div className="service-summary">
               <div className="service-card">
-                <h3>{service.title}</h3>
-                <p className="service-category">{service.category}</p>
-                <p className="service-description">{service.description}</p>
+                <div className="service-card-header">
+                  <div className="service-pill">{service.category || 'Service'}</div>
+                  <h3>{service.title}</h3>
+                  <p className="service-description">{service.description}</p>
+                </div>
 
                 <div className="service-details">
                   <div className="detail-item">
-                    <span className="label">Duration:</span>
-                    <span className="value">{service.duration}</span>
+                    <span className="label">Duration</span>
+                    <span className="value">{service.duration || 'Flexible'}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Price:</span>
+                    <span className="label">Price</span>
                     <span className="value">₹{service.price}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="label">Provider:</span>
-                    <span className="value">{service.provider?.name}</span>
+                    <span className="label">Provider</span>
+                    <span className="value">
+                      {service.provider?.name || 'Assigned after booking'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="service-highlights">
+                  <div className="highlight">
+                    <span className="highlight-icon">⏱️</span>
+                    <p>Instant confirmation</p>
+                  </div>
+                  <div className="highlight">
+                    <span className="highlight-icon">🔒</span>
+                    <p>Secure payment</p>
+                  </div>
+                  <div className="highlight">
+                    <span className="highlight-icon">⭐</span>
+                    <p>Rated providers</p>
                   </div>
                 </div>
               </div>
@@ -162,7 +194,13 @@ const BookService = () => {
             {/* Right Column - Booking Form */}
             <div className="booking-form-section">
               <form onSubmit={handleSubmit} className="booking-form">
-                <h3>Booking Details</h3>
+                <div className="form-header">
+                  <div>
+                    <h3>Booking details</h3>
+                    <p>Share your preferred schedule and location so we can prepare.</p>
+                  </div>
+                  <div className="booking-tag">Step 1 of 2</div>
+                </div>
 
                 <div className="form-group">
                   <label htmlFor="scheduledDate">Preferred Date *</label>
@@ -227,12 +265,17 @@ const BookService = () => {
                 </div>
 
                 <div className="booking-summary">
+                  <div className="summary-header">Booking summary</div>
                   <div className="summary-row">
-                    <span>Service Price:</span>
+                    <span>Service price</span>
                     <span>₹{service.price}</span>
                   </div>
+                  <div className="summary-row">
+                    <span>Estimated duration</span>
+                    <span>{service.duration || 'Varies'}</span>
+                  </div>
                   <div className="summary-row total">
-                    <span>Total Amount:</span>
+                    <span>Total due today</span>
                     <span>₹{service.price}</span>
                   </div>
                 </div>

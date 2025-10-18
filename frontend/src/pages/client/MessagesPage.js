@@ -175,17 +175,56 @@ const MessagesPage = () => {
           {/* Page Header */}
           <div className="messages-header">
             <div className="header-content">
-              <h1>Messages</h1>
-              <p>Communicate with your service providers</p>
-            </div>
-            <div className="header-stats">
-              <div className="stat-item">
-                <span className="stat-value">{totalUnread}</span>
-                <span className="stat-label">Unread</span>
+              <span className="header-eyebrow">Inbox</span>
+              <div className="header-title-row">
+                <h1>Messages</h1>
+                {totalUnread === 0 && conversations.length > 0 && (
+                  <span className="status-chip">All caught up</span>
+                )}
               </div>
-              <div className="stat-item">
-                <span className="stat-value">{conversations.length}</span>
-                <span className="stat-label">Conversations</span>
+              <p>Stay connected with your service providers in real time.</p>
+            </div>
+            <div className="header-stats" role="list">
+              <div className="stat-item" role="listitem">
+                <div className="stat-icon stat-icon--unread" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M4.5 6.75A2.25 2.25 0 0 1 6.75 4.5h10.5A2.25 2.25 0 0 1 19.5 6.75v7.5A2.25 2.25 0 0 1 17.25 16.5H8.561a.75.75 0 0 0-.498.192l-2.934 2.64a.75.75 0 0 1-1.254-.552v-11.58Z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div className="stat-copy">
+                  <span className="stat-label">Unread</span>
+                  <span className="stat-value">{totalUnread}</span>
+                </div>
+              </div>
+              <div className="stat-item" role="listitem">
+                <div className="stat-icon stat-icon--conversations" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M6.75 6.75A2.25 2.25 0 0 1 9 4.5h8.25A2.25 2.25 0 0 1 19.5 6.75v6a2.25 2.25 0 0 1-2.25 2.25H9.939a.75.75 0 0 0-.498.192l-2.934 2.64a.75.75 0 0 1-1.254-.552v-10.53Z"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <path
+                      d="M4.5 10.5V15a2.25 2.25 0 0 0 2.25 2.25H9"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div className="stat-copy">
+                  <span className="stat-label">Conversations</span>
+                  <span className="stat-value">{conversations.length}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -206,12 +245,27 @@ const MessagesPage = () => {
               <div className="sidebar-header">
                 <h3>Conversations</h3>
                 <div className="search-container">
+                  <span className="search-icon" aria-hidden="true">
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <circle cx="11" cy="11" r="6" />
+                      <path d="m20 20-2.8-2.8" />
+                    </svg>
+                  </span>
                   <input
                     type="text"
                     placeholder="Search providers..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="search-input"
+                    aria-label="Search providers"
                   />
                 </div>
               </div>
@@ -233,6 +287,7 @@ const MessagesPage = () => {
                         setSelectedConversation(conversation);
                         markAsRead(conversation.id);
                       }}
+                      aria-pressed={selectedConversation?.id === conversation.id}
                     >
                       <div className="conversation-avatar">
                         <img
@@ -247,7 +302,12 @@ const MessagesPage = () => {
 
                       <div className="conversation-content">
                         <div className="conversation-header">
-                          <h4 className="provider-name">{conversation.participant.name}</h4>
+                          <div className="conversation-title">
+                            <h4 className="provider-name">{conversation.participant.name}</h4>
+                            {conversation.unreadCount > 0 && (
+                              <span className="conversation-pill">New</span>
+                            )}
+                          </div>
                           <span className="last-time">
                             {formatTime(conversation.lastMessageTime)}
                           </span>
@@ -257,11 +317,24 @@ const MessagesPage = () => {
                           <p className="last-message">
                             {conversation.lastMessage || 'No messages yet'}
                           </p>
-                          {conversation.unreadCount > 0 && (
-                            <span className="unread-badge">{conversation.unreadCount}</span>
-                          )}
                         </div>
                       </div>
+                      {conversation.unreadCount > 0 && (
+                        <span className="unread-badge">{conversation.unreadCount}</span>
+                      )}
+                      <span className="conversation-chevron" aria-hidden="true">
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="m9 18 6-6-6-6" />
+                        </svg>
+                      </span>
                     </button>
                   ))
                 )}
@@ -288,6 +361,13 @@ const MessagesPage = () => {
                         </ul>
                       </div>
                     )}
+                    <button
+                      type="button"
+                      className="primary-cta"
+                      onClick={() => navigate('/services')}
+                    >
+                      Explore services
+                    </button>
                   </div>
                 </div>
               )}

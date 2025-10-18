@@ -84,10 +84,6 @@ const Header = ({ isLoggedIn: isLoggedInProp, userType: userTypeProp = 'user' })
                 <span className="nav-icon">📅</span>
                 Schedule
               </Link>
-              <Link to="/provider/reports" className="nav-link">
-                <span className="nav-icon">📊</span>
-                Reports
-              </Link>
             </>
           ) : userType === 'admin' ? (
             // Admin-specific navigation
