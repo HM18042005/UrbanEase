@@ -147,6 +147,42 @@ const AdminBookingsPage = () => {
     }).format(amount || 0);
   };
 
+  const getServiceName = (booking) => {
+    return booking.serviceName || booking.service?.title || booking.service?.name || 'N/A';
+  };
+
+  const getServiceCategory = (booking) => {
+    return booking.serviceCategory || booking.service?.category || 'N/A';
+  };
+
+  const getCustomerName = (booking) => {
+    return booking.customerName || booking.customer?.name || 'N/A';
+  };
+
+  const getCustomerEmail = (booking) => {
+    return booking.customerEmail || booking.customer?.email || 'N/A';
+  };
+
+  const getProviderName = (booking) => {
+    return booking.providerName || booking.provider?.name || 'N/A';
+  };
+
+  const getProviderEmail = (booking) => {
+    return booking.providerEmail || booking.provider?.email || 'N/A';
+  };
+
+  const getAvatarInitial = (name, fallback) => {
+    return name?.trim()?.[0]?.toUpperCase() || fallback;
+  };
+
+  const getScheduledDate = (booking) => {
+    return booking.scheduledDate || booking.date || booking.serviceDate || booking.createdAt;
+  };
+
+  const getBookingAmount = (booking) => {
+    return booking.totalAmount ?? booking.amount ?? booking.service?.price ?? 0;
+  };
+
   if (loading) {
     return (
       <>
@@ -310,123 +346,132 @@ const AdminBookingsPage = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredBookings.map((booking) => (
-                        <tr key={booking._id}>
-                          <td>
-                            <div className="booking-id">
-                              <span className="id-text">#{booking._id?.slice(-8)}</span>
-                            </div>
-                          </td>
+                      {filteredBookings.map((booking) => {
+                        const serviceName = getServiceName(booking);
+                        const serviceCategory = getServiceCategory(booking);
+                        const customerName = getCustomerName(booking);
+                        const customerEmail = getCustomerEmail(booking);
+                        const providerName = getProviderName(booking);
+                        const providerEmail = getProviderEmail(booking);
+                        const scheduledDate = getScheduledDate(booking);
+                        const bookingAmount = getBookingAmount(booking);
 
-                          <td>
-                            <div className="service-info">
-                              <div className="service-name">{booking.serviceName || 'N/A'}</div>
-                              <div className="service-category">{booking.serviceCategory}</div>
-                            </div>
-                          </td>
-
-                          <td>
-                            <div className="user-info">
-                              <div className="user-avatar">
-                                {booking.customerName?.[0]?.toUpperCase() || 'C'}
+                        return (
+                          <tr key={booking._id}>
+                            <td>
+                              <div className="booking-id">
+                                <span className="id-text">#{booking._id?.slice(-8)}</span>
                               </div>
-                              <div className="user-details">
-                                <div className="user-name">{booking.customerName || 'N/A'}</div>
-                                <div className="user-email">{booking.customerEmail}</div>
+                            </td>
+
+                            <td>
+                              <div className="service-info">
+                                <div className="service-name">{serviceName}</div>
+                                <div className="service-category">{serviceCategory}</div>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          <td>
-                            <div className="user-info">
-                              <div className="user-avatar">
-                                {booking.providerName?.[0]?.toUpperCase() || 'P'}
+                            <td>
+                              <div className="user-info">
+                                <div className="user-avatar">
+                                  {getAvatarInitial(customerName, 'C')}
+                                </div>
+                                <div className="user-details">
+                                  <div className="user-name">{customerName}</div>
+                                  <div className="user-email">{customerEmail}</div>
+                                </div>
                               </div>
-                              <div className="user-details">
-                                <div className="user-name">{booking.providerName || 'N/A'}</div>
-                                <div className="user-email">{booking.providerEmail}</div>
+                            </td>
+
+                            <td>
+                              <div className="user-info">
+                                <div className="user-avatar">
+                                  {getAvatarInitial(providerName, 'P')}
+                                </div>
+                                <div className="user-details">
+                                  <div className="user-name">{providerName}</div>
+                                  <div className="user-email">{providerEmail}</div>
+                                </div>
                               </div>
-                            </div>
-                          </td>
+                            </td>
 
-                          <td>
-                            <span className="date-text">{formatDate(booking.scheduledDate)}</span>
-                          </td>
+                            <td>
+                              <span className="date-text">{formatDate(scheduledDate)}</span>
+                            </td>
 
-                          <td>
-                            <span className="amount-text">
-                              {formatCurrency(booking.totalAmount)}
-                            </span>
-                          </td>
+                            <td>
+                              <span className="amount-text">{formatCurrency(bookingAmount)}</span>
+                            </td>
 
-                          <td>
-                            <span
-                              className="status-badge"
-                              style={{
-                                backgroundColor: getStatusColor(booking.status),
-                                color: 'white',
-                              }}
-                            >
-                              {booking.status?.replace('_', ' ')}
-                            </span>
-                          </td>
-
-                          <td>
-                            <div className="action-buttons">
-                              <button
-                                onClick={() => {
-                                  setSelectedBooking(booking);
-                                  setShowModal(true);
+                            <td>
+                              <span
+                                className="status-badge"
+                                style={{
+                                  backgroundColor: getStatusColor(booking.status),
+                                  color: 'white',
                                 }}
-                                className="action-btn view"
-                                title="View details"
                               >
-                                👁️
-                              </button>
+                                {booking.status?.replace('_', ' ')}
+                              </span>
+                            </td>
 
-                              {booking.status === 'pending' && (
+                            <td>
+                              <div className="action-buttons">
                                 <button
-                                  onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
-                                  className="action-btn activate"
-                                  title="Confirm booking"
+                                  onClick={() => {
+                                    setSelectedBooking(booking);
+                                    setShowModal(true);
+                                  }}
+                                  className="action-btn view"
+                                  title="View details"
                                 >
-                                  ✅
+                                  👁️
                                 </button>
-                              )}
 
-                              {booking.status === 'confirmed' && (
-                                <button
-                                  onClick={() => handleStatusUpdate(booking._id, 'in_progress')}
-                                  className="action-btn activate"
-                                  title="Start service"
-                                >
-                                  🚀
-                                </button>
-                              )}
+                                {booking.status === 'pending' && (
+                                  <button
+                                    onClick={() => handleStatusUpdate(booking._id, 'confirmed')}
+                                    className="action-btn activate"
+                                    title="Confirm booking"
+                                  >
+                                    ✅
+                                  </button>
+                                )}
 
-                              {booking.status === 'in_progress' && (
-                                <button
-                                  onClick={() => handleStatusUpdate(booking._id, 'completed')}
-                                  className="action-btn activate"
-                                  title="Complete service"
-                                >
-                                  ✨
-                                </button>
-                              )}
+                                {booking.status === 'confirmed' && (
+                                  <button
+                                    onClick={() => handleStatusUpdate(booking._id, 'in_progress')}
+                                    className="action-btn activate"
+                                    title="Start service"
+                                  >
+                                    🚀
+                                  </button>
+                                )}
 
-                              {['pending', 'confirmed'].includes(booking.status) && (
-                                <button
-                                  onClick={() => handleStatusUpdate(booking._id, 'cancelled')}
-                                  className="action-btn delete"
-                                  title="Cancel booking"
-                                >
-                                  ❌
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                                {booking.status === 'in_progress' && (
+                                  <button
+                                    onClick={() => handleStatusUpdate(booking._id, 'completed')}
+                                    className="action-btn activate"
+                                    title="Complete service"
+                                  >
+                                    ✨
+                                  </button>
+                                )}
+
+                                {['pending', 'confirmed'].includes(booking.status) && (
+                                  <button
+                                    onClick={() => handleStatusUpdate(booking._id, 'cancelled')}
+                                    className="action-btn delete"
+                                    title="Cancel booking"
+                                  >
+                                    ❌
+                                  </button>
+                                )}
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}
@@ -467,7 +512,7 @@ const AdminBookingsPage = () => {
                     <div className="booking-profile">
                       <div className="profile-info">
                         <h4>Booking #{selectedBooking._id?.slice(-8)}</h4>
-                        <p className="profile-email">{selectedBooking.serviceName}</p>
+                        <p className="profile-email">{getServiceName(selectedBooking)}</p>
                         <span
                           className="profile-role"
                           style={{ backgroundColor: getStatusColor(selectedBooking.status) }}
@@ -481,31 +526,31 @@ const AdminBookingsPage = () => {
                       <dl className="detail-list">
                         <div className="detail-group">
                           <dt>Service:</dt>
-                          <dd>{selectedBooking.serviceName || 'N/A'}</dd>
+                          <dd>{getServiceName(selectedBooking)}</dd>
                         </div>
 
                         <div className="detail-group">
                           <dt>Customer:</dt>
                           <dd>
-                            {selectedBooking.customerName} ({selectedBooking.customerEmail})
+                            {getCustomerName(selectedBooking)} ({getCustomerEmail(selectedBooking)})
                           </dd>
                         </div>
 
                         <div className="detail-group">
                           <dt>Provider:</dt>
                           <dd>
-                            {selectedBooking.providerName} ({selectedBooking.providerEmail})
+                            {getProviderName(selectedBooking)} ({getProviderEmail(selectedBooking)})
                           </dd>
                         </div>
 
                         <div className="detail-group">
                           <dt>Scheduled Date:</dt>
-                          <dd>{formatDate(selectedBooking.scheduledDate)}</dd>
+                          <dd>{formatDate(getScheduledDate(selectedBooking))}</dd>
                         </div>
 
                         <div className="detail-group">
                           <dt>Amount:</dt>
-                          <dd>{formatCurrency(selectedBooking.totalAmount)}</dd>
+                          <dd>{formatCurrency(getBookingAmount(selectedBooking))}</dd>
                         </div>
 
                         <div className="detail-group">

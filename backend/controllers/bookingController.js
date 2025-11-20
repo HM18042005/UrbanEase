@@ -1,12 +1,15 @@
 const Booking = require('../models/booking');
 const Service = require('../models/service');
 const User = require('../models/user');
+const logger = require('../utils/logger');
+const { parsePaginationParams, buildPageMetadata } = require('../utils/pagination');
 
 // Get all bookings for a user (customer or provider)
 exports.getUserBookings = async (req, res) => {
   try {
-    const { status, role = 'customer', limit = 10, page = 1 } = req.query;
-    
+    const { status, role = 'customer', limit, page } = req.query;
+    const pagination = parsePaginationParams({ page, limit, maxLimit: 50 });
+
     // Build filter based on user role
     const filter = {};
     if (role === 'customer') {
@@ -22,8 +25,8 @@ exports.getUserBookings = async (req, res) => {
       .populate('provider', 'name email phone')
       .populate('service', 'title description price category')
       .sort({ createdAt: -1 })
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
+      .limit(pagination.limit)
+      .skip(pagination.skip);
 
     const total = await Booking.countDocuments(filter);
 
@@ -31,15 +34,12 @@ exports.getUserBookings = async (req, res) => {
       success: true,
       bookings,
       pagination: {
-        currentPage: Number(page),
-        totalPages: Math.ceil(total / Number(limit)),
-        totalBookings: total,
-        hasNextPage: page < Math.ceil(total / Number(limit)),
-        hasPreviousPage: page > 1
+        ...buildPageMetadata({ total, page: pagination.page, limit: pagination.limit }),
+        totalBookings: total
       }
     });
   } catch (error) {
-    console.error('Get user bookings error:', error);
+    logger.error('Get user bookings error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -62,9 +62,9 @@ exports.getBooking = async (req, res) => {
     const isAdmin = req.user.role === 'admin';
 
     if (!isCustomer && !isProvider && !isAdmin) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to view this booking' 
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to view this booking'
       });
     }
 
@@ -73,7 +73,7 @@ exports.getBooking = async (req, res) => {
       booking
     });
   } catch (error) {
-    console.error('Get booking error:', error);
+    logger.error('Get booking error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -84,9 +84,9 @@ exports.createBooking = async (req, res) => {
     const { serviceId, date, address } = req.body;
 
     if (!serviceId || !date) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Service ID and date are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Service ID and date are required'
       });
     }
 
@@ -108,18 +108,18 @@ exports.createBooking = async (req, res) => {
 
     // Check if user is trying to book their own service
     if (service.provider._id.toString() === req.user._id.toString()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cannot book your own service' 
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot book your own service'
       });
     }
 
     // Check if date is in the future
     const bookingDate = new Date(date);
     if (bookingDate <= new Date()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Booking date must be in the future' 
+      return res.status(400).json({
+        success: false,
+        message: 'Booking date must be in the future'
       });
     }
 
@@ -144,7 +144,7 @@ exports.createBooking = async (req, res) => {
       booking
     });
   } catch (error) {
-    console.error('Create booking error:', error);
+    logger.error('Create booking error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -158,9 +158,9 @@ exports.updateBookingStatus = async (req, res) => {
     const validStatuses = ['pending', 'confirmed', 'in_progress', 'completed', 'cancelled'];
 
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Invalid status' 
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status'
       });
     }
 
@@ -174,28 +174,28 @@ exports.updateBookingStatus = async (req, res) => {
     const isAdmin = req.user.role === 'admin';
 
     if (!isCustomer && !isProvider && !isAdmin) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to update this booking' 
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this booking'
       });
     }
 
     // Status update rules
     if (status === 'confirmed' && !isProvider && !isAdmin) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Only providers can confirm bookings' 
+      return res.status(403).json({
+        success: false,
+        message: 'Only providers can confirm bookings'
       });
     }
 
     if (status === 'completed' && !isProvider && !isAdmin) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Only providers can mark bookings as completed' 
+      return res.status(403).json({
+        success: false,
+        message: 'Only providers can mark bookings as completed'
       });
     }
 
-  booking.status = status;
+    booking.status = status;
     await booking.save();
     await booking.populate([
       { path: 'customer', select: 'name email phone' },
@@ -209,7 +209,7 @@ exports.updateBookingStatus = async (req, res) => {
       booking
     });
   } catch (error) {
-    console.error('Update booking status error:', error);
+    logger.error('Update booking status error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -227,16 +227,16 @@ exports.cancelBooking = async (req, res) => {
     const isAdmin = req.user.role === 'admin';
 
     if (!isCustomer && !isProvider && !isAdmin) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to cancel this booking' 
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to cancel this booking'
       });
     }
 
     if (booking.status === 'completed') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cannot cancel completed booking' 
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot cancel completed booking'
       });
     }
 
@@ -248,7 +248,7 @@ exports.cancelBooking = async (req, res) => {
       message: 'Booking cancelled successfully'
     });
   } catch (error) {
-    console.error('Cancel booking error:', error);
+    logger.error('Cancel booking error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -259,7 +259,7 @@ exports.getBookingStats = async (req, res) => {
     const userId = req.user._id;
     const { role = 'customer' } = req.query;
 
-    const matchFilter = role === 'customer' 
+    const matchFilter = role === 'customer'
       ? { customer: userId }
       : { provider: userId };
 
@@ -274,7 +274,7 @@ exports.getBookingStats = async (req, res) => {
     ]);
 
     const totalBookings = await Booking.countDocuments(matchFilter);
-    
+
     // Format stats
     const formattedStats = {
       total: totalBookings,
@@ -302,7 +302,7 @@ exports.getBookingStats = async (req, res) => {
       recentBookings
     });
   } catch (error) {
-    console.error('Get booking stats error:', error);
+    logger.error('Get booking stats error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -310,9 +310,10 @@ exports.getBookingStats = async (req, res) => {
 // Get upcoming bookings
 exports.getUpcomingBookings = async (req, res) => {
   try {
-    const { role = 'customer', limit = 5 } = req.query;
-    
-    const matchFilter = role === 'customer' 
+    const { role = 'customer', limit } = req.query;
+    const pagination = parsePaginationParams({ page: 1, limit, maxLimit: 25 });
+
+    const matchFilter = role === 'customer'
       ? { customer: req.user._id }
       : { provider: req.user._id };
 
@@ -325,14 +326,18 @@ exports.getUpcomingBookings = async (req, res) => {
       .populate('provider', 'name email phone')
       .populate('service', 'title price category')
       .sort({ date: 1 })
-      .limit(Number(limit));
+      .limit(pagination.limit);
 
     res.json({
       success: true,
-      upcomingBookings
+      upcomingBookings,
+      meta: {
+        requestedLimit: pagination.limit,
+        count: upcomingBookings.length
+      }
     });
   } catch (error) {
-    console.error('Get upcoming bookings error:', error);
+    logger.error('Get upcoming bookings error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -340,9 +345,10 @@ exports.getUpcomingBookings = async (req, res) => {
 // Get booking history
 exports.getBookingHistory = async (req, res) => {
   try {
-    const { role = 'customer', page = 1, limit = 10 } = req.query;
-    
-    const matchFilter = role === 'customer' 
+    const { role = 'customer', page, limit } = req.query;
+    const pagination = parsePaginationParams({ page, limit, maxLimit: 50 });
+
+    const matchFilter = role === 'customer'
       ? { customer: req.user._id }
       : { provider: req.user._id };
 
@@ -354,8 +360,8 @@ exports.getBookingHistory = async (req, res) => {
       .populate('provider', 'name email')
       .populate('service', 'title price category')
       .sort({ date: -1 })
-      .limit(limit * 1)
-      .skip((page - 1) * limit);
+      .limit(pagination.limit)
+      .skip(pagination.skip);
 
     const total = await Booking.countDocuments({
       ...matchFilter,
@@ -366,13 +372,12 @@ exports.getBookingHistory = async (req, res) => {
       success: true,
       bookings,
       pagination: {
-        currentPage: Number(page),
-        totalPages: Math.ceil(total / limit),
+        ...buildPageMetadata({ total, page: pagination.page, limit: pagination.limit }),
         totalBookings: total
       }
     });
   } catch (error) {
-    console.error('Get booking history error:', error);
+    logger.error('Get booking history error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -381,11 +386,11 @@ exports.getBookingHistory = async (req, res) => {
 exports.rescheduleBooking = async (req, res) => {
   try {
     const { newDate } = req.body;
-    
+
     if (!newDate) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'New date is required' 
+      return res.status(400).json({
+        success: false,
+        message: 'New date is required'
       });
     }
 
@@ -398,17 +403,17 @@ exports.rescheduleBooking = async (req, res) => {
     const isProvider = booking.provider.toString() === req.user._id.toString();
 
     if (!isCustomer && !isProvider) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to reschedule this booking' 
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to reschedule this booking'
       });
     }
 
     const rescheduleDate = new Date(newDate);
     if (rescheduleDate <= new Date()) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'New date must be in the future' 
+      return res.status(400).json({
+        success: false,
+        message: 'New date must be in the future'
       });
     }
 
@@ -428,7 +433,7 @@ exports.rescheduleBooking = async (req, res) => {
       booking
     });
   } catch (error) {
-    console.error('Reschedule booking error:', error);
+    logger.error('Reschedule booking error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -437,11 +442,11 @@ exports.rescheduleBooking = async (req, res) => {
 exports.getAvailableSlots = async (req, res) => {
   try {
     const { serviceId, date } = req.query;
-    
+
     if (!serviceId || !date) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Service ID and date are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Service ID and date are required'
       });
     }
 
@@ -461,8 +466,8 @@ exports.getAvailableSlots = async (req, res) => {
     for (let hour = 9; hour <= 17; hour++) {
       const slotTime = new Date(selectedDate);
       slotTime.setHours(hour, 0, 0, 0);
-      
-      const isBooked = existingBookings.some(booking => 
+
+      const isBooked = existingBookings.some(booking =>
         booking.date.getHours() === hour
       );
 
@@ -479,7 +484,7 @@ exports.getAvailableSlots = async (req, res) => {
       availableSlots: slots
     });
   } catch (error) {
-    console.error('Get available slots error:', error);
+    logger.error('Get available slots error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

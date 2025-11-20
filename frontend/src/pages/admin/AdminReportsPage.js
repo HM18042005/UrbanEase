@@ -236,14 +236,6 @@ const AdminReportsPage = () => {
                   >
                     🔄
                   </button>
-
-                  <button
-                    onClick={() => handleExport('json')}
-                    disabled={exportLoading}
-                    className="btn btn-secondary"
-                  >
-                    {exportLoading ? '⏳' : '📊'} Export
-                  </button>
                 </div>
               </div>
             </div>

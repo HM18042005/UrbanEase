@@ -466,13 +466,13 @@ const BookingsPage = () => {
                         <button
                           className="action-btn primary"
                           onClick={() => handleReview(booking)}
-                          title={booking.rating ? 'Edit your review' : 'Leave a review'}
+                          title={booking.rating ? 'View your review' : 'Leave a review'}
                         >
                           <span className="btn-icon" aria-hidden>
-                            {booking.rating ? '✏️' : '⭐'}
+                            {booking.rating ? '👁️' : '⭐'}
                           </span>
                           <span className="btn-label">
-                            {booking.rating ? 'Edit Review' : 'Leave Review'}
+                            {booking.rating ? 'View Review' : 'Leave Review'}
                           </span>
                         </button>
                         <button

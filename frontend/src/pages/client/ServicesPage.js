@@ -1,33 +1,31 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import { useSearchParams } from 'react-router-dom';
 
-import {
-  getServices,
-  searchServices,
-  getServicesByCategory,
-  advancedSearchServices,
-} from '../../api/services';
+import { getServices } from '../../api/services';
 import Header from '../../components/Header';
 import ServiceCard from '../../components/ServiceCard';
 import './ServicesPage.css';
 
+const DEFAULT_FILTERS = {
+  minPrice: '',
+  maxPrice: '',
+  minRating: '',
+  sortBy: 'newest',
+  location: '',
+  radius: '50',
+};
+
 const ServicesPage = () => {
   const [searchParams] = useSearchParams();
   const [services, setServices] = useState([]);
-  const [filteredServices, setFilteredServices] = useState([]);
   const [activeCategory, setActiveCategory] = useState('All Services');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
-  const [filters, setFilters] = useState({
-    minPrice: '',
-    maxPrice: '',
-    minRating: '',
-    sortBy: 'newest',
-    location: '',
-    radius: '50',
-  });
+  const [filters, setFilters] = useState(() => ({ ...DEFAULT_FILTERS }));
+  const filtersRef = useRef({ ...DEFAULT_FILTERS });
+  const categoryRef = useRef('All Services');
 
   const categories = [
     'All Services',
@@ -50,39 +48,63 @@ const ServicesPage = () => {
   const searchQuery = searchParams.get('search') || '';
   const categoryFilter = searchParams.get('category') || '';
 
-  const fetchServices = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError('');
+  useEffect(() => {
+    filtersRef.current = filters;
+  }, [filters]);
 
-      let servicesData = [];
+  useEffect(() => {
+    categoryRef.current = activeCategory;
+  }, [activeCategory]);
 
-      if (searchQuery) {
-        // Search for services
-        servicesData = await searchServices(searchQuery);
-      } else if (categoryFilter && categoryFilter !== 'All Services') {
-        // Get services by category
-        servicesData = await getServicesByCategory(categoryFilter);
-      } else {
-        // Get all services
-        servicesData = await getServices();
+  const fetchServices = useCallback(
+    async (overrides = {}) => {
+      try {
+        setLoading(true);
+        setError('');
+
+        const currentFilters = overrides.filters || filtersRef.current;
+        let currentCategory = overrides.category;
+        if (!currentCategory) {
+          if (categoryFilter && categoryFilter !== '') {
+            currentCategory = categoryFilter;
+          } else {
+            currentCategory = categoryRef.current;
+          }
+        }
+
+        const params = {
+          limit: 30,
+          sortBy: currentFilters.sortBy || 'newest',
+        };
+
+        if (searchQuery) params.search = searchQuery;
+        if (currentCategory && currentCategory !== 'All Services') {
+          params.category = currentCategory;
+        }
+        if (currentFilters.minPrice) params.minPrice = currentFilters.minPrice;
+        if (currentFilters.maxPrice) params.maxPrice = currentFilters.maxPrice;
+        if (currentFilters.minRating) params.minRating = currentFilters.minRating;
+        if (currentFilters.location?.trim()) params.location = currentFilters.location.trim();
+        if (currentFilters.radius) params.radius = currentFilters.radius;
+
+        const servicesData = await getServices(params);
+        setServices(servicesData || []);
+
+        if (overrides.category) {
+          setActiveCategory(overrides.category);
+        } else if (categoryFilter) {
+          setActiveCategory(categoryFilter);
+        }
+      } catch (err) {
+        console.error('Error fetching services:', err);
+        setError('Failed to load services');
+        setServices([]);
+      } finally {
+        setLoading(false);
       }
-
-      setServices(servicesData || []);
-      setFilteredServices(servicesData || []);
-
-      if (categoryFilter) {
-        setActiveCategory(categoryFilter);
-      }
-    } catch (err) {
-      console.error('Error fetching services:', err);
-      setError('Failed to load services');
-      setServices([]);
-      setFilteredServices([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [searchQuery, categoryFilter]);
+    },
+    [searchQuery, categoryFilter]
+  );
 
   useEffect(() => {
     fetchServices();
@@ -90,63 +112,27 @@ const ServicesPage = () => {
 
   const handleCategoryChange = (category) => {
     setActiveCategory(category);
-
-    if (category === 'All Services') {
-      setFilteredServices(services);
-    } else {
-      setFilteredServices(
-        services.filter((service) => service.category?.toLowerCase() === category.toLowerCase())
-      );
-    }
+    fetchServices({ category });
   };
 
   const handleFilterChange = (filterName, value) => {
-    setFilters((prev) => ({
-      ...prev,
-      [filterName]: value,
-    }));
-  };
+    const updatedFilters = { ...filters, [filterName]: value };
+    setFilters(updatedFilters);
 
-  const applyAdvancedFilters = async () => {
-    try {
-      setLoading(true);
-      setError('');
-
-      const searchData = {
-        query: searchQuery,
-        categories: activeCategory !== 'All Services' ? [activeCategory] : [],
-        minPrice: filters.minPrice ? Number(filters.minPrice) : undefined,
-        maxPrice: filters.maxPrice ? Number(filters.maxPrice) : undefined,
-        minRating: filters.minRating ? Number(filters.minRating) : undefined,
-        location: filters.location || undefined,
-        radius: Number(filters.radius),
-        sortBy: filters.sortBy,
-        page: 1,
-        limit: 20,
-      };
-
-      const result = await advancedSearchServices(searchData);
-      setServices(result.services || []);
-      setFilteredServices(result.services || []);
-    } catch (err) {
-      console.error('Error applying filters:', err);
-      setError('Failed to apply filters');
-    } finally {
-      setLoading(false);
+    if (filterName === 'sortBy') {
+      fetchServices({ filters: updatedFilters });
     }
   };
 
+  const applyAdvancedFilters = async () => {
+    fetchServices({ filters });
+  };
+
   const resetFilters = () => {
-    setFilters({
-      minPrice: '',
-      maxPrice: '',
-      minRating: '',
-      sortBy: 'newest',
-      location: '',
-      radius: '50',
-    });
+    const resetValues = { ...DEFAULT_FILTERS };
+    setFilters(resetValues);
     setActiveCategory('All Services');
-    fetchServices();
+    fetchServices({ filters: resetValues, category: 'All Services' });
   };
 
   return (
@@ -212,14 +198,30 @@ const ServicesPage = () => {
               className="advanced-filters-toggle"
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
             >
-              {showAdvancedFilters ? 'Hide Filters' : 'Advanced Filters'}
+              <span className="toggle-icon" aria-hidden="true">
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 20 20"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    d="M4 6H16M6 10H14M8 14H12"
+                    stroke="currentColor"
+                    strokeWidth="1.6"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </span>
+              <span>{showAdvancedFilters ? 'Hide Filters' : 'Advanced Filters'}</span>
             </button>
           </div>
 
           {showAdvancedFilters && (
             <div className="advanced-filters">
               <div className="filter-row">
-                <div className="filter-group">
+                <div className="filter-group filter-card">
                   <label className="filter-label" htmlFor="min-price">
                     Price Range:
                   </label>
@@ -232,7 +234,7 @@ const ServicesPage = () => {
                       onChange={(e) => handleFilterChange('minPrice', e.target.value)}
                       className="price-input"
                     />
-                    <span>to</span>
+                    <span className="price-separator">to</span>
                     <input
                       type="number"
                       id="max-price"
@@ -244,7 +246,7 @@ const ServicesPage = () => {
                   </div>
                 </div>
 
-                <div className="filter-group">
+                <div className="filter-group filter-card">
                   <label className="filter-label" htmlFor="min-rating">
                     Minimum Rating:
                   </label>
@@ -262,7 +264,7 @@ const ServicesPage = () => {
                   </select>
                 </div>
 
-                <div className="filter-group">
+                <div className="filter-group filter-card">
                   <label className="filter-label" htmlFor="location-input">
                     Location:
                   </label>
@@ -276,7 +278,7 @@ const ServicesPage = () => {
                   />
                 </div>
 
-                <div className="filter-group">
+                <div className="filter-group filter-card">
                   <label className="filter-label" htmlFor="radius-select">
                     Radius (km):
                   </label>
@@ -295,12 +297,17 @@ const ServicesPage = () => {
               </div>
 
               <div className="filter-actions">
-                <button className="apply-filters-btn" onClick={applyAdvancedFilters}>
-                  Apply Filters
-                </button>
-                <button className="reset-filters-btn" onClick={resetFilters}>
-                  Reset All
-                </button>
+                <div className="filter-actions-meta">
+                  <p className="filter-tip">Combine filters to zero in on the perfect pro.</p>
+                </div>
+                <div className="filter-actions-buttons">
+                  <button className="apply-filters-btn" onClick={applyAdvancedFilters}>
+                    Apply Filters
+                  </button>
+                  <button className="reset-filters-btn" onClick={resetFilters}>
+                    Reset All
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -313,7 +320,7 @@ const ServicesPage = () => {
                   ? 'Loading...'
                   : error
                     ? 'Error loading services'
-                    : `${filteredServices.length} service${filteredServices.length !== 1 ? 's' : ''} found`}
+                    : `${services.length} service${services.length !== 1 ? 's' : ''} found`}
               </span>
             </div>
 
@@ -333,8 +340,8 @@ const ServicesPage = () => {
               </div>
             ) : (
               <div className="row g-4">
-                {filteredServices.length > 0 ? (
-                  filteredServices.map((service) => (
+                {services.length > 0 ? (
+                  services.map((service) => (
                     <div key={service.id || service._id} className="col-12 col-md-6 col-lg-4">
                       <ServiceCard service={service} />
                     </div>

@@ -1,37 +1,59 @@
 const Service = require('../models/service');
 const User = require('../models/user');
 const Review = require('../models/review');
+const logger = require('../utils/logger');
+const { parsePaginationParams, buildPageMetadata } = require('../utils/pagination');
+
+const parseCoordinatePair = (value = '') => {
+  if (!value) return null;
+  const [lat, lng] = value.split(',').map(Number);
+  return [lat, lng].every((coord) => Number.isFinite(coord)) ? { lat, lng } : null;
+};
+
+const buildLocationRegexMatch = (term = '') => {
+  const cleaned = term.trim();
+  if (!cleaned) return null;
+  return {
+    $or: [
+      { 'provider.city': { $regex: cleaned, $options: 'i' } },
+      { 'provider.state': { $regex: cleaned, $options: 'i' } },
+      { 'provider.address': { $regex: cleaned, $options: 'i' } },
+      { 'provider.zipCode': { $regex: cleaned, $options: 'i' } },
+    ],
+  };
+};
 
 // Get all services with optional filtering
 exports.getServices = async (req, res) => {
   try {
-    const { 
-      category, 
-      provider, 
-      search, 
-      minPrice, 
-      maxPrice, 
-      sortBy, 
-      limit = 10, 
-      page = 1,
+    const {
+      category,
+      provider,
+      search,
+      minPrice,
+      maxPrice,
+      sortBy,
+      limit,
+      page,
       location,
-      radius = 50, // km
+      radius = 50,
       minRating,
       availability
     } = req.query;
-    
+    const pagination = parsePaginationParams({ page, limit, maxLimit: 50 });
+
     // Build filter object
     const filter = {};
     if (category) filter.category = category;
     if (provider) filter.provider = provider;
-    
+
     // Price range filtering
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = Number(minPrice);
       if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
-    
+
     // Text search
     if (search) {
       filter.$or = [
@@ -41,19 +63,21 @@ exports.getServices = async (req, res) => {
       ];
     }
 
-    // Location-based filtering (if location coordinates provided)
+    let locationRegexMatch = null;
     if (location) {
-      const [lat, lng] = location.split(',').map(Number);
-      if (lat && lng) {
+      const coords = parseCoordinatePair(location);
+      if (coords) {
         filter.location = {
           $near: {
             $geometry: {
               type: 'Point',
-              coordinates: [lng, lat]
+              coordinates: [coords.lng, coords.lat]
             },
-            $maxDistance: Number(radius) * 1000 // Convert km to meters
+            $maxDistance: Number(radius) * 1000
           }
         };
+      } else {
+        locationRegexMatch = buildLocationRegexMatch(location);
       }
     }
 
@@ -136,6 +160,10 @@ exports.getServices = async (req, res) => {
       }
     ];
 
+    if (locationRegexMatch) {
+      pipeline.push({ $match: locationRegexMatch });
+    }
+
     // Add rating filter if specified
     if (minRating) {
       pipeline.push({
@@ -160,13 +188,10 @@ exports.getServices = async (req, res) => {
     }
 
     // Add pagination
-    pipeline.push(
-      { $skip: (Number(page) - 1) * Number(limit) },
-      { $limit: Number(limit) }
-    );
+    pipeline.push({ $skip: pagination.skip }, { $limit: pagination.limit });
 
     const services = await Service.aggregate(pipeline);
-    
+
     // Get total count for pagination
     const countPipeline = [...pipeline.slice(0, -2)]; // Remove skip and limit
     countPipeline.push({ $count: 'total' });
@@ -177,11 +202,8 @@ exports.getServices = async (req, res) => {
       success: true,
       services,
       pagination: {
-        currentPage: Number(page),
-        totalPages: Math.ceil(total / Number(limit)),
-        totalServices: total,
-        hasNextPage: page < Math.ceil(total / Number(limit)),
-        hasPreviousPage: page > 1
+        ...buildPageMetadata({ total, page: pagination.page, limit: pagination.limit }),
+        totalServices: total
       },
       filters: {
         category,
@@ -192,7 +214,7 @@ exports.getServices = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get services error:', error);
+    logger.error('Get services error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -213,8 +235,8 @@ exports.getService = async (req, res) => {
       .sort({ createdAt: -1 });
 
     // Calculate average rating
-    const avgRating = reviews.length > 0 
-      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length 
+    const avgRating = reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
       : 0;
 
     res.json({
@@ -227,7 +249,7 @@ exports.getService = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get service error:', error);
+    logger.error('Get service error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -238,9 +260,9 @@ exports.createService = async (req, res) => {
     const { title, description, price, category, duration, isAvailable } = req.body;
 
     if (!title || !price) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Title and price are required' 
+      return res.status(400).json({
+        success: false,
+        message: 'Title and price are required'
       });
     }
 
@@ -263,7 +285,7 @@ exports.createService = async (req, res) => {
       service
     });
   } catch (error) {
-    console.error('Create service error:', error);
+    logger.error('Create service error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -279,14 +301,14 @@ exports.updateService = async (req, res) => {
 
     // Check if user is the provider of this service
     if (service.provider.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to update this service' 
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to update this service'
       });
     }
 
     const { title, description, price, category, duration, isAvailable } = req.body;
-    
+
     if (title) service.title = title;
     if (description) service.description = description;
     if (price) service.price = price;
@@ -303,7 +325,7 @@ exports.updateService = async (req, res) => {
       service
     });
   } catch (error) {
-    console.error('Update service error:', error);
+    logger.error('Update service error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -319,9 +341,9 @@ exports.deleteService = async (req, res) => {
 
     // Check if user is the provider of this service
     if (service.provider.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to delete this service' 
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to delete this service'
       });
     }
 
@@ -332,7 +354,7 @@ exports.deleteService = async (req, res) => {
       message: 'Service deleted successfully'
     });
   } catch (error) {
-    console.error('Delete service error:', error);
+    logger.error('Delete service error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -342,7 +364,7 @@ exports.getProviderServices = async (req, res) => {
   try {
     // If providerId is in params, use that; otherwise use current user
     const providerId = req.params.providerId || req.user._id;
-    
+
     const services = await Service.find({ provider: providerId })
       .populate('provider', 'name email phone')
       .sort({ createdAt: -1 });
@@ -352,7 +374,7 @@ exports.getProviderServices = async (req, res) => {
       services
     });
   } catch (error) {
-    console.error('Get provider services error:', error);
+    logger.error('Get provider services error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -366,7 +388,7 @@ exports.getCategories = async (req, res) => {
       categories: categories.filter(cat => cat) // Remove null/empty categories
     });
   } catch (error) {
-    console.error('Get categories error:', error);
+    logger.error('Get categories error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -388,10 +410,11 @@ exports.advancedSearch = async (req, res) => {
     } = req.body;
 
     const pipeline = [];
+    let locationRegexMatch = null;
 
     // Initial match stage
     const matchStage = {};
-    
+
     // Text search
     if (query) {
       matchStage.$text = { $search: query };
@@ -413,16 +436,18 @@ exports.advancedSearch = async (req, res) => {
 
     // Location-based search
     if (location) {
-      const [lat, lng] = location.split(',').map(Number);
-      if (lat && lng) {
+      const coords = parseCoordinatePair(location);
+      if (coords) {
         pipeline.unshift({
           $geoNear: {
-            near: { type: 'Point', coordinates: [lng, lat] },
+            near: { type: 'Point', coordinates: [coords.lng, coords.lat] },
             distanceField: 'distance',
             maxDistance: Number(radius) * 1000,
             spherical: true
           }
         });
+      } else {
+        locationRegexMatch = buildLocationRegexMatch(location);
       }
     }
 
@@ -459,6 +484,10 @@ exports.advancedSearch = async (req, res) => {
         }
       }
     );
+
+    if (locationRegexMatch) {
+      pipeline.push({ $match: locationRegexMatch });
+    }
 
     // Rating filter
     if (minRating) {
@@ -573,7 +602,7 @@ exports.advancedSearch = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Advanced search error:', error);
+    logger.error('Advanced search error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -589,22 +618,22 @@ exports.toggleAvailability = async (req, res) => {
 
     // Check if user is the provider of this service
     if (service.provider.toString() !== req.user._id.toString()) {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Not authorized to modify this service' 
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to modify this service'
       });
     }
 
     service.isAvailable = !service.isAvailable;
     await service.save();
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: `Service ${service.isAvailable ? 'activated' : 'deactivated'}`,
-      service 
+      service
     });
   } catch (error) {
-    console.error('Toggle availability error:', error);
+    logger.error('Toggle availability error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -638,8 +667,8 @@ exports.getServiceStats = async (req, res) => {
 
     const filteredReviews = recentReviews.filter(review => review.service);
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       stats: stats[0] || {
         totalServices: 0,
         activeServices: 0,
@@ -649,7 +678,7 @@ exports.getServiceStats = async (req, res) => {
       recentReviews: filteredReviews
     });
   } catch (error) {
-    console.error('Get service stats error:', error);
+    logger.error('Get service stats error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -657,28 +686,28 @@ exports.getServiceStats = async (req, res) => {
 // Search services with advanced filters
 exports.searchServices = async (req, res) => {
   try {
-    const { 
-      q, 
-      category, 
-      location, 
-      minPrice, 
-      maxPrice, 
+    const {
+      q,
+      category,
+      location,
+      minPrice,
+      maxPrice,
       rating,
       sortBy = 'relevance',
       page = 1,
-      limit = 12 
+      limit = 12
     } = req.query;
 
     const filter = {};
-    
+
     // Text search
     if (q) {
       filter.$text = { $search: q };
     }
-    
+
     if (category) filter.category = category;
     if (location) filter.location = { $regex: location, $options: 'i' };
-    
+
     // Price range
     if (minPrice || maxPrice) {
       filter.price = {};
@@ -733,7 +762,7 @@ exports.searchServices = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Search services error:', error);
+    logger.error('Search services error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -744,7 +773,7 @@ exports.getFeaturedServices = async (req, res) => {
     const { limit = 6 } = req.query;
 
     // First try to get services that are featured with high ratings
-    let services = await Service.find({ 
+    let services = await Service.find({
       isAvailable: true,
       averageRating: { $gte: 4.0 } // Services with rating 4.0 or higher
     })
@@ -754,7 +783,7 @@ exports.getFeaturedServices = async (req, res) => {
 
     // If no highly rated services found, fallback to just available services
     if (services.length === 0) {
-      services = await Service.find({ 
+      services = await Service.find({
         isAvailable: true
       })
         .populate('provider', 'name profilePicture')
@@ -764,7 +793,7 @@ exports.getFeaturedServices = async (req, res) => {
 
     res.json({ success: true, services });
   } catch (error) {
-    console.error('Get featured services error:', error);
+    logger.error('Get featured services error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
@@ -781,7 +810,7 @@ exports.getPopularServices = async (req, res) => {
 
     res.json({ success: true, services });
   } catch (error) {
-    console.error('Get popular services error:', error);
+    logger.error('Get popular services error', error);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };

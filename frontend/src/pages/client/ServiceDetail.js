@@ -29,6 +29,7 @@ const ServiceDetail = () => {
   const [service, setService] = useState(null);
   const [provider, setProvider] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedImageIdx, setSelectedImageIdx] = useState(0);
@@ -59,11 +60,14 @@ const ServiceDetail = () => {
 
       // Fetch reviews for this service
       try {
-        const reviewsData = await reviewAPI.getReviews(id);
-        setReviews(reviewsData || []);
+        const reviewsResponse = await reviewAPI.getReviews(id);
+        const serviceReviews = reviewsResponse?.reviews || [];
+        setReviews(serviceReviews);
+        setReviewStats(reviewsResponse?.stats || null);
       } catch (reviewError) {
         console.error('Error fetching reviews:', reviewError);
         setReviews([]);
+        setReviewStats(null);
       }
       // Fetch related services in same category (best-effort)
       try {
@@ -103,6 +107,11 @@ const ServiceDetail = () => {
     const hasHalfStar = rating % 1 !== 0;
     return '⭐'.repeat(fullStars) + (hasHalfStar ? '⭐' : '');
   };
+
+  const getReviewerName = (review) =>
+    review?.user?.name || review?.customerName || review?.userName || 'Anonymous';
+
+  const getReviewComment = (review) => review?.comment ?? review?.review ?? 'No comment provided.';
 
   const formatDate = (dateString) => {
     if (!dateString) return 'Unknown date';
@@ -144,14 +153,13 @@ const ServiceDetail = () => {
   const priceNumber = Number((service.price ?? service.startingPrice) || 0);
   const formattedPrice =
     priceNumber > 0 ? `₹${priceNumber.toLocaleString('en-IN')}` : 'Contact for quote';
-  const ratingNumber = Number(service.rating);
+  const ratingNumber = Number(reviewStats?.averageRating ?? service.rating);
+  const totalReviews = reviewStats?.totalReviews ?? reviews.length;
   const hasRating = Number.isFinite(ratingNumber) && ratingNumber > 0;
   const ratingDisplay = hasRating ? ratingNumber.toFixed(1) : 'New';
   const ratingStars = hasRating ? renderStars(ratingNumber) : '☆';
   const reviewsLabel =
-    reviews.length > 0
-      ? `${reviews.length} review${reviews.length > 1 ? 's' : ''}`
-      : 'No reviews yet';
+    totalReviews > 0 ? `${totalReviews} review${totalReviews > 1 ? 's' : ''}` : 'No reviews yet';
   const ratingDescriptor = hasRating ? `${ratingDisplay} / 5` : 'Awaiting reviews';
   const ratingSummaryClass = hasRating ? 'rating-summary positive' : 'rating-summary neutral';
 
@@ -377,18 +385,17 @@ const ServiceDetail = () => {
                   <div key={review._id || review.id || index} className="review-card">
                     <div className="review-header">
                       <div className="reviewer-info">
-                        <span className="reviewer-name">
-                          {review.customerName || review.userName || 'Anonymous'}
-                        </span>
+                        <span className="reviewer-name">{getReviewerName(review)}</span>
                         <span className="review-date">
                           {formatDate(review.createdAt || review.date)}
                         </span>
                       </div>
-                      <div className="review-rating">{renderStars(review.rating)}</div>
+                      <div className="review-rating" aria-label={`Rated ${review.rating} out of 5`}>
+                        <span className="rating-stars">{renderStars(review.rating)}</span>
+                        {review.rating && <span className="rating-value">{review.rating}/5</span>}
+                      </div>
                     </div>
-                    <p className="review-comment">
-                      {review.comment || review.review || 'No comment provided.'}
-                    </p>
+                    <p className="review-comment">{getReviewComment(review)}</p>
                   </div>
                 ))}
               </div>

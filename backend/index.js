@@ -2,170 +2,130 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
-require('dotenv').config();
+const http = require('http');
 
-// Import models
-const Booking = require('./models/booking');
-const User = require('./models/user');
-const message = require('./models/message');
-const service = require('./models/service');
-const review = require('./models/review');
-
+const env = require('./config/env');
+const logger = require('./utils/logger');
+const createHealthRouter = require('./routes/healthRoutes');
+const { protect, restrictTo } = require('./middleware/auth');
+const SocketHandler = require('./socket/socketHandler');
 
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+app.set('trust proxy', env.isProd);
+
+const corsOptions = env.allowedOrigins.length
+  ? {
+    origin(origin, callback) {
+      if (!origin || env.allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      logger.warn(`Blocked request from disallowed origin: ${origin}`);
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  }
+  : { origin: true, credentials: true };
+
+app.use(cors(corsOptions));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI ,{ useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => console.log('Connected to MongoDB'))
-  .catch((error) => console.error('MongoDB connection error:', error));
 
-// Auth routes
-const authRoutes = require('./routes/authRoutes');
-app.use('/api/auth', authRoutes);
+app.use((req, res, next) => {
+  const started = Date.now();
+  res.on('finish', () => {
+    logger.http(`${req.method} ${req.originalUrl} -> ${res.statusCode} (${Date.now() - started}ms)`);
+  });
+  next();
+});
 
-// Profile routes
-const profileRoutes = require('./routes/profileRoutes');
-app.use('/api/profile', profileRoutes);
+const routeBindings = [
+  ['/api/auth', require('./routes/authRoutes')],
+  ['/api/profile', require('./routes/profileRoutes')],
+  ['/api/services', require('./routes/serviceRoutes')],
+  ['/api/bookings', require('./routes/bookingRoutes')],
+  ['/api/reviews', require('./routes/reviewRoutes')],
+  ['/api/messages', require('./routes/messageRoutes')],
+  ['/api/users', require('./routes/userRoutes')],
+  ['/api/provider', require('./routes/providerRoutes')],
+  ['/api/admin', require('./routes/adminRoutes')],
+  ['/api/payments', require('./routes/paymentRoutes')],
+];
 
-// Service routes
-const serviceRoutes = require('./routes/serviceRoutes');
-app.use('/api/services', serviceRoutes);
+routeBindings.forEach(([mountPath, router]) => app.use(mountPath, router));
 
-// Booking routes
-const bookingRoutes = require('./routes/bookingRoutes');
-app.use('/api/bookings', bookingRoutes);
+app.use('/health', createHealthRouter({ enableDebugMetrics: env.exposeDebugRoutes }));
 
-// Review routes
-const reviewRoutes = require('./routes/reviewRoutes');
-app.use('/api/reviews', reviewRoutes);
+app.get('/', (req, res) => {
+  res.json({
+    message: 'UrbanEase backend is online',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+  });
+});
 
-// Message routes
-const messageRoutes = require('./routes/messageRoutes');
-app.use('/api/messages', messageRoutes);
-
-// User routes
-const userRoutes = require('./routes/userRoutes');
-app.use('/api/users', userRoutes);
-
-// Provider routes
-const providerRoutes = require('./routes/providerRoutes');
-app.use('/api/provider', providerRoutes);
-
-// Admin routes
-const adminRoutes = require('./routes/adminRoutes');
-app.use('/api/admin', adminRoutes);
-
-// Payment routes
-const paymentRoutes = require('./routes/paymentRoutes');
-app.use('/api/payments', paymentRoutes);
-
-// Test route
-app.get('/', (req, res) => res.send('Hello from backend!'));
-
-// Admin-only test route
-const { protect, restrictTo } = require('./middleware/auth');
 app.get('/admin/ping', protect, restrictTo('admin'), (req, res) => {
   res.json({ ok: true, user: req.user });
 });
 
-// Test database route
-app.get('/test-db1', async (req, res) => {
-  try {
-    const count = await message.countDocuments();
-    res.json({ 
-      message: 'Database connection working!', 
-      messagesCount: count,
-      dbStatus: 'Connected'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Database error', 
-      error: error.message,
-      dbStatus: 'Error'
-    });
-  }
-});
-app.get('/test-db2', async (req, res) => {
-  try {
-    const count = await User.countDocuments();
-    res.json({ 
-      message: 'Database connection working!', 
-      usersCount: count,
-      dbStatus: 'Connected'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Database error', 
-      error: error.message,
-      dbStatus: 'Error'
-    });
-  }
-});
-app.get('/test-db3', async (req, res) => {
-  try {
-    const count = await Booking.countDocuments();
-    res.json({ 
-      message: 'Database connection working!', 
-      bookingsCount: count,
-      dbStatus: 'Connected'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Database error', 
-      error: error.message,
-      dbStatus: 'Error'
-    });
-  }
-});
-app.get('/test-db4', async (req, res) => {
-  try {
-    const count = await service.countDocuments();
-    res.json({ 
-      message: 'Database connection working!', 
-      servicesCount: count,
-      dbStatus: 'Connected'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Database error', 
-      error: error.message,
-      dbStatus: 'Error'
-    });
-  }
-});app.get('/test-db5', async (req, res) => {
-  try {
-    const count = await review.countDocuments();
-    res.json({ 
-      message: 'Database connection working!', 
-      reviewsCount: count,
-      dbStatus: 'Connected'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      message: 'Database error', 
-      error: error.message,
-      dbStatus: 'Error'
-    });
-  }
-});
-// Create HTTP server and Socket.IO integration
-const http = require('http');
-const SocketHandler = require('./socket/socketHandler');
-
 const server = http.createServer(app);
-
-// Initialize Socket.IO
 const socketHandler = new SocketHandler(server);
-
-
-// Make socket handler available to routes
 app.set('socketHandler', socketHandler);
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📡 Socket.IO enabled for real-time chat`);
-  console.log(`🔗 WebSocket ready at ws://localhost:${PORT}`);
+mongoose.connection.on('connected', () => logger.success('Connected to MongoDB'));
+mongoose.connection.on('error', (error) => logger.error(`MongoDB connection error: ${error.message}`));
+mongoose.connection.on('disconnected', () => logger.warn('MongoDB disconnected'));
+
+const connectToDatabase = async () => {
+  if (!env.mongoUri) {
+    throw new Error('MONGO_URI is required but missing');
+  }
+
+  await mongoose.connect(env.mongoUri, {
+    autoIndex: env.nodeEnv !== 'production',
+  });
+};
+
+const startServer = () =>
+  new Promise((resolve) => {
+    server.listen(env.port, () => {
+      logger.success(`🚀 Server running on port ${env.port}`);
+      logger.info(`📡 Socket.IO enabled for real-time chat`);
+      resolve();
+    });
+  });
+
+const bootstrap = async () => {
+  try {
+    await connectToDatabase();
+    await startServer();
+  } catch (error) {
+    logger.error('Server failed to start', error);
+    process.exit(1);
+  }
+};
+
+bootstrap();
+
+const gracefulShutdown = (signal) => {
+  logger.warn(`${signal} received. Closing server...`);
+  server.close(() => {
+    mongoose.connection.close(false, () => {
+      logger.info('MongoDB connection closed');
+      process.exit(0);
+    });
+  });
+};
+
+['SIGINT', 'SIGTERM'].forEach((signal) => {
+  process.on(signal, () => gracefulShutdown(signal));
+});
+
+app.use((err, req, res, next) => {
+  if (err.message === 'Not allowed by CORS') {
+    return res.status(403).json({ message: 'Origin blocked by CORS policy' });
+  }
+
+  logger.error(err.message);
+  res.status(err.status || 500).json({ message: err.message || 'Internal server error' });
 });
