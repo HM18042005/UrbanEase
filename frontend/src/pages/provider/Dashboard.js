@@ -169,9 +169,6 @@ const Dashboard = () => {
                           </div>
                           <div className="booking-details">
                             <span className="service-name">{booking.service?.title}</span>
-                            <span className="booking-date">
-                              {new Date(booking.scheduledDate).toLocaleDateString()}
-                            </span>
                           </div>
                         </div>
                       ))}
